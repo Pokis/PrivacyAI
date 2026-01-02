@@ -122,6 +122,31 @@ class AISwitchboard {
             return 'no'; // Safest fallback
         }
     }
+    async getDiagnostics() {
+        const report = {
+            windowAI: !!window.ai,
+            promptAPI: 'missing',
+            writerAPI: 'missing',
+            rewriterAPI: 'missing'
+        };
+
+        if (window.ai) {
+            const check = async (cap) => {
+                if (!window.ai[cap]) return 'missing';
+                try {
+                    // race with timeout
+                    const p = window.ai[cap].availability();
+                    const t = new Promise(r => setTimeout(() => r('timeout'), 1000));
+                    return await Promise.race([p, t]);
+                } catch (e) { return 'error'; }
+            };
+
+            report.promptAPI = await check('languageModel');
+            report.writerAPI = await check('writer');
+            report.rewriterAPI = await check('rewriter');
+        }
+        return report;
+    }
 }
 
 export const aiSwitchboard = new AISwitchboard();

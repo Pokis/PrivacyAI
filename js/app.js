@@ -35,8 +35,9 @@ async function init() {
         UI.setLandingState('ready');
     } else {
         appReady = false;
+        const diag = await aiSwitchboard.getDiagnostics();
         UI.setHardwareStatus('status_unsupported');
-        UI.setLandingState('setup');
+        UI.setLandingState('setup', diag);
     }
 
     // Event Listeners

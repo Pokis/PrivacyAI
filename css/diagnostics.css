@@ -1,0 +1,36 @@
+/* Diagnostics Box */
+.diag-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.diag-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.diag-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.diag-item .ok {
+    color: var(--status-green);
+}
+
+.diag-item .warn {
+    color: var(--status-amber);
+}
+
+.diag-item .err {
+    color: var(--status-red);
+}

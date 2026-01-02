@@ -138,7 +138,7 @@ export const UI = {
     },
 
     // Landing Page State Management
-    setLandingState(state) {
+    setLandingState(state, report = null) {
         // state: 'loading' | 'ready' | 'setup'
         elements.landingLoading.classList.add('hidden');
         elements.landingReady.classList.add('hidden');
@@ -146,7 +146,38 @@ export const UI = {
 
         if (state === 'loading') elements.landingLoading.classList.remove('hidden');
         if (state === 'ready') elements.landingReady.classList.remove('hidden');
-        if (state === 'setup') elements.landingSetup.classList.remove('hidden');
+        if (state === 'setup') {
+            elements.landingSetup.classList.remove('hidden');
+            if (report) this.renderDiagnostics(report);
+        }
+    },
+
+    renderDiagnostics(report) {
+        // Create or clear a diag container inside setup
+        let container = document.getElementById('diag-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'diag-container';
+            container.className = 'diag-box';
+            // Insert before verify button
+            const btn = document.getElementById('retry-btn');
+            btn.parentNode.insertBefore(container, btn);
+        }
+
+        const dict = locales[currentLang];
+        const getLabel = (status) => {
+            if (status === 'readily') return `<span class="ok">✅ ${dict.status_readily}</span>`;
+            if (status === 'after-download') return `<span class="warn">⬇️ ${dict.status_after_download}</span>`;
+            if (status === 'missing') return `<span class="err">❌ ${dict.status_missing}</span>`;
+            if (status === 'no') return `<span class="err">❌ ${dict.status_no}</span>`;
+            return `<span class="warn">⚠️ ${status}</span>`;
+        };
+
+        container.innerHTML = `
+            <div class="diag-item"><span>${dict.diag_prompt}:</span> ${getLabel(report.promptAPI)}</div>
+            <div class="diag-item"><span>${dict.diag_writer}:</span> ${getLabel(report.writerAPI)}</div>
+            <div class="diag-item"><span>${dict.diag_rewriter}:</span> ${getLabel(report.rewriterAPI)}</div>
+         `;
     },
 
     switchView(mode) {

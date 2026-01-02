@@ -21,9 +21,16 @@ export const locales = {
         welcome_desc: "This app runs Artificial Intelligence directly on your computer. Your data never leaves this device.",
         welcome_setup_title: "Setup Required",
         welcome_setup_desc: "Your browser isn't ready. Follow these steps:",
-        step_1: "Open chrome://flags and enable 'Prompt API', 'Writer API', 'Rewriter API', and 'Optimization Guide'.",
-        step_2: "Open chrome://components and Click 'Check for Update' on 'Optimization Guide On Device Model'.",
-        step_3: "If it says 'Version: 0.0.0.0', it is still downloading. Wait for it to finish.",
+        step_1: `Open <strong>chrome://flags</strong> and enable:
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "Open <strong>chrome://components</strong> and click 'Check for Update' on 'Optimization Guide On Device Model'.",
+        step_3: "It may take up to <strong>15 minutes</strong> to download. If version is '0.0.0.0', keep waiting.",
         step_4: "Restart Chrome.",
         retry_btn: "Check Connection Again",
         enter_btn: "Enter PrivacyAI",
@@ -108,9 +115,16 @@ export const locales = {
         welcome_desc: "Ši programa veikia tiesiogiai jūsų kompiuteryje. Jokie duomenys nėra siunčiami į internetą.",
         welcome_setup_title: "Reikalingi Nustatymai",
         welcome_setup_desc: "Jūsų naršyklė dar neparuošta. Sekite šiuos žingsnius:",
-        step_1: "Atidarykite chrome://flags ir įjunkite 'Prompt API', 'Writer API', 'Rewriter API' ir 'Optimization Guide'.",
-        step_2: "Atidarykite chrome://components ir paspauskite 'Check for Update' ties 'Optimization Guide On Device Model'.",
-        step_3: "Jei rodo 'Version: 0.0.0.0', siuntimas vis dar vyksta. Palaukite.",
+        step_1: `Atidarykite <strong>chrome://flags</strong> ir įjunkite:
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "Atidarykite <strong>chrome://components</strong> ir paspauskite 'Check for Update' ties 'Optimization Guide On Device Model'.",
+        step_3: "Atsisiuntimas gali užtrukti iki <strong>15 minučių</strong>. Jei versija '0.0.0.0', laukite.",
         step_4: "Perkraukite Chrome.",
         retry_btn: "Tikrinti Iš Naujo",
         enter_btn: "Pradėti",
@@ -183,9 +197,16 @@ export const locales = {
         welcome_desc: "AI działa lokalnie na Twoim komputerze. Pełna prywatność.",
         welcome_setup_title: "Konfiguracja",
         welcome_setup_desc: "Twoja przeglądarka wymaga konfiguracji:",
-        step_1: "Otwórz chrome://flags i włącz 'Prompt API', 'Writer API', 'Rewriter API' oraz 'Optimization Guide'.",
-        step_2: "Otwórz chrome://components i kliknij 'Check for Update' przy 'Optimization Guide On Device Model'.",
-        step_3: "Jeśli widzisz 'Version: 0.0.0.0', trwa pobieranie. Poczekaj.",
+        step_1: `Otwórz <strong>chrome://flags</strong> i włącz:
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "Otwórz <strong>chrome://components</strong> i kliknij 'Check for Update' przy 'Optimization Guide On Device Model'.",
+        step_3: "Pobieranie może potrwać do <strong>15 minut</strong>. Jeśli wersja to '0.0.0.0', czekaj.",
         step_4: "Zrestartuj Chrome.",
         retry_btn: "Sprawdź Ponownie",
         enter_btn: "Wejdź",
@@ -258,9 +279,16 @@ export const locales = {
         welcome_desc: "KI läuft lokal auf Ihrem Gerät. Keine Daten verlassen Ihren PC.",
         welcome_setup_title: "Einrichtung",
         welcome_setup_desc: "Browser-Konfiguration erforderlich:",
-        step_1: "Öffnen Sie chrome://flags und aktivieren Sie 'Prompt API', 'Writer API', 'Rewriter API' und 'Optimization Guide'.",
-        step_2: "Öffnen Sie chrome://components und klicken Sie auf 'Check for Update' bei 'Optimization Guide On Device Model'.",
-        step_3: "Wenn dort 'Version: 0.0.0.0' steht, wird noch heruntergeladen. Bitte warten.",
+        step_1: `Öffnen Sie <strong>chrome://flags</strong> und aktivieren Sie:
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "Öffnen Sie <strong>chrome://components</strong> und klicken Sie auf 'Check for Update' bei 'Optimization Guide On Device Model'.",
+        step_3: "Der Download kann bis zu <strong>15 Minuten</strong> dauern. Wenn Version '0.0.0.0', warten.",
         step_4: "Starten Sie Chrome neu.",
         retry_btn: "Erneut prüfen",
         enter_btn: "Starten",
@@ -333,9 +361,16 @@ export const locales = {
         welcome_desc: "IA local en tu dispositivo. Tus datos están seguros.",
         welcome_setup_title: "Configuración",
         welcome_setup_desc: "Configura tu navegador:",
-        step_1: "Abra chrome://flags y habilite 'Prompt API', 'Writer API', 'Rewriter API' y 'Optimization Guide'.",
-        step_2: "Abra chrome://components y haga clic en 'Check for Update' en 'Optimization Guide On Device Model'.",
-        step_3: "Si dice 'Version: 0.0.0.0', aún se está descargando. Espere a que termine.",
+        step_1: `Abra <strong>chrome://flags</strong> y habilite:
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "Abra <strong>chrome://components</strong> y haga clic en 'Check for Update' en 'Optimization Guide On Device Model'.",
+        step_3: "La descarga puede tardar hasta <strong>15 minutos</strong>. Si la versión es '0.0.0.0', espere.",
         step_4: "Reinicie Chrome.",
         retry_btn: "Comprobar",
         enter_btn: "Entrar",
@@ -408,9 +443,16 @@ export const locales = {
         welcome_desc: "AIはあなたのPC上で動作します。データは外部に送信されません。",
         welcome_setup_title: "設定が必要です",
         welcome_setup_desc: "ブラウザの設定を確認してください:",
-        step_1: "chrome://flags を開き、'Prompt API'、'Writer API'、'Rewriter API'、'Optimization Guide' を有効にします。",
-        step_2: "chrome://components を開き、'Optimization Guide On Device Model' の 'Check for Update' をクリックします。",
-        step_3: "'Version: 0.0.0.0' と表示される場合はダウンロード中です。完了までお待ちください。",
+        step_1: `<strong>chrome://flags</strong> を開き、以下を有効にします：
+            <ul style="margin:5px 0 10px 20px;">
+                <li>Prompt API for Gemini Nano</li>
+                <li>Writer API for Gemini Nano</li>
+                <li>Rewriter API for Gemini Nano</li>
+                <li>Proofreader API for Gemini Nano</li>
+                <li>Enables optimization guide on device</li>
+            </ul>`,
+        step_2: "<strong>chrome://components</strong> を開き、'Optimization Guide On Device Model' の 'Check for Update' をクリックします。",
+        step_3: "ダウンロードには最大<strong>15分</strong>かかる場合があります。'Version: 0.0.0.0' の場合はお待ちください。",
         step_4: "Chrome を再起動してください。",
         retry_btn: "再確認",
         enter_btn: "開始",

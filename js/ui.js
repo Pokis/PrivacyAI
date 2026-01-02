@@ -170,10 +170,26 @@ export const UI = {
             if (status === 'after-download') return `<span class="warn">⬇️ ${dict.status_after_download}</span>`;
             if (status === 'missing') return `<span class="err">❌ ${dict.status_missing}</span>`;
             if (status === 'no') return `<span class="err">❌ ${dict.status_no}</span>`;
+            if (status === 'timeout') return `<span class="warn">⚠️ ${dict.status_timeout}</span>`;
             return `<span class="warn">⚠️ ${status}</span>`;
         };
 
+        // Check if window.ai is missing entirely
+        let baseCheck = "";
+        if (!report.windowAI) {
+            baseCheck = `
+                <div class="diag-item" style="display:block; margin-bottom:10px;">
+                    <span class="err" style="font-weight:bold">WINDOW.AI MISSING</span>
+                    <div style="font-size:0.85em; opacity:0.8; margin-top:4px;">
+                        1. Flags enabled? (Prompt API, Optimization Guide)<br>
+                        2. <strong>chrome://components</strong> -> Check 'Optimization Guide On Device Model' is NOT 0.0.0.0<br>
+                        3. Restart Browser
+                    </div>
+                </div>`;
+        }
+
         container.innerHTML = `
+            ${baseCheck}
             <div class="diag-item"><span>${dict.diag_prompt}:</span> ${getLabel(report.promptAPI)}</div>
             <div class="diag-item"><span>${dict.diag_writer}:</span> ${getLabel(report.writerAPI)}</div>
             <div class="diag-item"><span>${dict.diag_rewriter}:</span> ${getLabel(report.rewriterAPI)}</div>

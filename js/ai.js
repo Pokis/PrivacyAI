@@ -100,11 +100,28 @@ class AISwitchboard {
     }
 
     async checkAvailability() {
-        if (!window.ai) return 'no';
+        console.log("AI: Checking availability...");
+
+        // Poll for window.ai for up to 3 seconds
+        let attempts = 0;
+        while (!window.ai && attempts < 30) {
+            await new Promise(r => setTimeout(r, 100)); // 100ms * 30 = 3000ms
+            attempts++;
+        }
+
+        console.log(`AI: window.ai present after ${attempts * 100}ms?`, !!window.ai);
+
+        if (!window.ai) {
+            console.warn("AI: window.ai missing after polling.");
+            return 'no';
+        }
 
         try {
             const capability = this.currentStrategy.getCapabilityName();
-            if (!window.ai[capability]) return 'no';
+            if (!window.ai[capability]) {
+                console.warn(`AI: window.ai.${capability} missing`);
+                return 'no';
+            }
 
             // Add timeout implementation to prevent hanging indefinitely
             const checkPromise = window.ai[capability].availability();
@@ -112,9 +129,11 @@ class AISwitchboard {
 
             const result = await Promise.race([checkPromise, timeoutPromise]);
 
+            console.log("AI: Availability result:", result);
+
             if (result === 'timeout') {
                 console.warn("AI Availability check timed out");
-                return 'no'; // or 'readily' if we want to be optimistic, but 'no' forces setup guide which might be safer
+                return 'no'; // Fallback to setup
             }
             return result;
         } catch (e) {
@@ -123,6 +142,12 @@ class AISwitchboard {
         }
     }
     async getDiagnostics() {
+        console.log("Checking AI Diagnostics...");
+        console.log("window.ai:", window.ai);
+        if (window.ai) {
+            console.log("window.ai capabilities:", Object.keys(window.ai));
+        }
+
         const report = {
             windowAI: !!window.ai,
             promptAPI: 'missing',

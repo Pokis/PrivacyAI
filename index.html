@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrivacyAI</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="app-container">
+        <aside id="sidebar">
+            <div class="brand">
+                <span class="shield-icon">🛡️</span> <span data-i18n="brand">PrivacyAI</span>
+            </div>
+
+            <div class="control-group">
+                <label for="lang-selector">Language</label>
+                <select id="lang-selector">
+                    <option value="en">English</option>
+                    <option value="lt">Lietuvių</option>
+                    <option value="pl">Polski</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
+                    <option value="ja">日本語</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="api-selector" data-i18n="mode_label">Mode</label>
+                <select id="api-selector">
+                    <option value="prompt" data-i18n="mode_chat">Chat</option>
+                    <option value="writer" data-i18n="mode_writer">Writer</option>
+                    <option value="rewriter" data-i18n="mode_editor">Editor</option>
+                </select>
+                <div id="mode-description" class="mode-hint">Chat with a private AI assistant.</div>
+            </div>
+
+            <nav id="project-list-container">
+                <div class="list-header" data-i18n="my_chats">My Chats</div>
+                <div id="project-list">
+                    <!-- Projects injected here -->
+                </div>
+                <button id="new-project-btn" class="sidebar-btn" data-i18n="new_chat">+ New Chat</button>
+            </nav>
+
+            <div class="bottom-controls">
+                <div id="reset-toggle" class="sidebar-item" data-i18n="reset_app">⚠️ Reset App</div>
+                <div id="help-toggle" class="sidebar-item" data-i18n="help">❓ Help</div>
+            </div>
+        </aside>
+
+        <main id="main-content">
+            <!-- Top Bar -->
+            <header id="top-bar">
+                <span class="status-dot online"></span>
+                <span id="header-title" data-i18n="welcome_desc">Private & Local</span>
+                <span class="hardware-status" data-i18n="status_checking">Checking AI...</span>
+            </header>
+
+            <!-- Landing / Welcome Screen (Default View) -->
+            <div id="welcome-screen">
+                <div class="welcome-card">
+                    <h1 data-i18n="welcome_title">Welcome to PrivacyAI</h1>
+                    <p data-i18n="welcome_desc">This app runs Artificial Intelligence directly on your computer. Your
+                        data never leaves this device.</p>
+
+                    <!-- Initial Loading State -->
+                    <div id="landing-loading">
+                        <div class="spinner"></div>
+                        <div class="loading-label" data-i18n="status_checking">Checking AI Capabilities...</div>
+                    </div>
+
+                    <!-- Ready State -->
+                    <div id="landing-ready" class="hidden">
+                        <div class="success-icon">✅</div>
+                        <h3 data-i18n="status_ready">AI Ready</h3>
+                        <button id="enter-btn" class="primary-btn big-btn" data-i18n="enter_btn">Enter
+                            PrivacyAI</button>
+                    </div>
+
+                    <!-- Error/Setup State -->
+                    <div id="landing-setup" class="hidden">
+                        <h3 data-i18n="welcome_setup_title">Setup Required</h3>
+                        <p data-i18n="welcome_setup_desc">Your browser isn't ready. Follow these steps:</p>
+                        <div class="steps-container">
+                            <div class="step-item">
+                                <div class="step-num">1</div>
+                                <div class="step-desc" data-i18n="step_1">Open chrome://flags</div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num">2</div>
+                                <div class="step-desc" data-i18n="step_2">Enable Optimization Guide</div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num">3</div>
+                                <div class="step-desc" data-i18n="step_3">Enable Prompt, Writer, Rewriter API</div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-num">4</div>
+                                <div class="step-desc" data-i18n="step_4">Restart Chrome</div>
+                            </div>
+                        </div>
+                        <button id="retry-btn" class="secondary-btn" data-i18n="retry_btn">Check Again</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Split View -->
+            <div id="re-writer-split" class="hidden">
+                <div class="panel left">
+                    <div class="panel-label" data-i18n="editor_original">Original Text</div>
+                    <textarea id="rewriter-input"></textarea> <!-- placeholder set via JS -->
+                </div>
+                <div class="panel right">
+                    <div class="panel-label" data-i18n="editor_improved">Improved Version</div>
+                    <div id="rewriter-output" class="output-area"></div>
+                </div>
+            </div>
+
+            <!-- Main Chat Interface -->
+            <div id="chat-interface" class="hidden">
+                <div id="output-stream"></div>
+
+                <div id="input-deck">
+                    <div class="typing-indicator hidden" data-i18n="typing">AI is writing...</div>
+                    <textarea id="user-input"></textarea> <!-- placeholder set via JS -->
+                    <button id="execute-btn" data-i18n="send_btn">Send</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay (For Model Download) -->
+        <div id="model-loader" class="hidden">
+            <div class="loader-content">
+                <div class="loader-text" data-i18n="loading_ai">Downloading AI Model...</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="download-progress" style="width: 0%"></div>
+                </div>
+                <div class="loader-status">0%</div>
+            </div>
+        </div>
+
+        <!-- Custom Input Modal -->
+        <div id="input-modal-overlay" class="hidden">
+            <div class="modal-window small">
+                <div class="modal-header">
+                    <span id="input-modal-title">New Chat</span>
+                    <button class="close-modal">×</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="custom-input-field">
+                    <div class="modal-actions">
+                        <button id="input-cancel-btn" class="secondary-btn" data-i18n="cancel">Cancel</button>
+                        <button id="input-confirm-btn" class="primary-btn" data-i18n="create">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libs -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/iife/index-min.js"></script>
+
+    <!-- App Modules -->
+    <script type="module" src="js/locales.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/ui.js"></script>
+    <script type="module" src="js/ai.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

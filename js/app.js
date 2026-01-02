@@ -25,16 +25,17 @@ async function init() {
         UI.setLanguage('en');
     }
 
-    // Initial State: Welcome Screen -> Loading
+    // Initial State: Loading
     UI.switchView('welcome');
     UI.setLandingState('loading');
 
     // Check Hardware
     const status = await aiSwitchboard.checkAvailability();
 
-    if (status === 'readily' || status === 'after-download') {
+    // Treat "after-download" same as "readily" for app entry, download happens on session create
+    if (status === 'readily' || status === 'after-download' || status === 'readily (implied)') {
         appReady = true;
-        UI.setHardwareStatus(status === 'readily' ? 'status_ready' : 'status_needs_dl');
+        UI.setHardwareStatus('status_ready');
         UI.setLandingState('ready');
     } else {
         appReady = false;
@@ -49,22 +50,17 @@ async function init() {
 
 async function enterApp() {
     if (!appReady) return;
-
-    // Load Projects
     await refreshProjects();
-
-    // Switch to Project View
-    // refreshProjects calls loadProject which switches view
 }
 
 async function refreshProjects() {
     const projects = await storage.getAllProjects();
-    const dict = locales[UI.langSelector.value];
+    const dict = locales[UI.langSelector.value] || locales['en'];
 
     if (projects.length === 0) {
         const newProj = {
             id: UUID(),
-            name: dict.new_chat.replace("+ ", "") || "General Chat", // localized default
+            name: (dict.new_chat || "New Chat").replace("+ ", ""),
             systemPrompt: "You are a helpful AI assistant.",
             history: [],
             apiMode: 'prompt'
@@ -73,7 +69,9 @@ async function refreshProjects() {
         projects.push(newProj);
     }
 
+    // Attempt to keep current project or select most recent
     if (!currentProject && projects.length > 0) {
+        // Sort by id (time) descending if possible, or just pick first
         await loadProject(projects[0].id);
     }
 
@@ -82,6 +80,7 @@ async function refreshProjects() {
 
 async function loadProject(id) {
     currentProject = await storage.getProject(id);
+    if (!currentProject) return;
 
     UI.clearChat();
     UI.apiSelector.value = currentProject.apiMode || 'prompt';
@@ -104,106 +103,147 @@ async function loadProject(id) {
 
 function setupEventListeners() {
 
-    // Landing Page Buttons
-    document.getElementById('enter-btn').addEventListener('click', () => enterApp());
-    document.getElementById('retry-btn').addEventListener('click', () => window.location.reload());
+    // Landing Page
+    const enterBtn = document.getElementById('enter-btn');
+    if (enterBtn) enterBtn.addEventListener('click', () => enterApp());
+
+    const retryBtn = document.getElementById('retry-btn');
+    if (retryBtn) retryBtn.addEventListener('click', () => window.location.reload());
 
     // Language
-    UI.langSelector.addEventListener('change', async (e) => {
-        const lang = e.target.value;
-        UI.setLanguage(lang);
-        await storage.saveSetting('language', lang);
-        // Refresh project list to maybe update standard UI (not project names)
-        if (currentProject) UI.renderProjects(await storage.getAllProjects(), currentProject.id);
+    if (UI.langSelector) {
+        UI.langSelector.addEventListener('change', async (e) => {
+            const lang = e.target.value;
+            UI.setLanguage(lang);
+            await storage.saveSetting('language', lang);
+            if (currentProject) UI.renderProjects(await storage.getAllProjects(), currentProject.id);
+        });
+    }
 
-        // Update hardware status text
-        const status = await aiSwitchboard.checkAvailability();
-        if (status === 'readily') UI.setHardwareStatus('status_ready');
-        else if (status === 'after-download') UI.setHardwareStatus('status_needs_dl');
-        else UI.setHardwareStatus('status_unsupported');
-    });
-
-    // API Selector
-    UI.apiSelector.addEventListener('change', async (e) => {
-        if (!currentProject) return;
-        currentProject.apiMode = e.target.value;
-        await storage.saveProject(currentProject);
-
-        aiSwitchboard.setStrategy(e.target.value);
-        UI.switchView(e.target.value);
-        currentSession = null;
-    });
+    // API Mode
+    if (UI.apiSelector) {
+        UI.apiSelector.addEventListener('change', async (e) => {
+            if (!currentProject) return;
+            currentProject.apiMode = e.target.value;
+            await storage.saveProject(currentProject);
+            aiSwitchboard.setStrategy(e.target.value);
+            UI.switchView(e.target.value);
+            currentSession = null;
+        });
+    }
 
     // New Project
-    document.getElementById('new-project-btn').addEventListener('click', () => {
-        const dict = locales[UI.langSelector.value];
-        UI.showInputModal(dict.modal_new_chat, async (name) => {
-            const p = {
-                id: UUID(),
-                name: name,
-                systemPrompt: "You are a helpful AI.",
-                history: [],
-                apiMode: 'prompt'
-            };
-            await storage.saveProject(p);
-            await refreshProjects();
-            await loadProject(p.id);
+    const newProjBtn = document.getElementById('new-project-btn');
+    if (newProjBtn) {
+        newProjBtn.addEventListener('click', () => {
+            const dict = locales[UI.langSelector.value] || locales['en'];
+            UI.showInputModal(dict.modal_new_chat, async (name) => {
+                const p = {
+                    id: UUID(),
+                    name: name,
+                    systemPrompt: "You are a helpful AI.",
+                    history: [],
+                    apiMode: 'prompt'
+                };
+                await storage.saveProject(p);
+                await refreshProjects();
+                await loadProject(p.id);
+            });
         });
-    });
+    }
 
-    // Project List Clicks
-    document.getElementById('project-list').addEventListener('click', async (e) => {
-        const item = e.target.closest('.project-item');
-        if (item) {
+    // Project List Interactions (Select, Rename, Delete)
+    const projList = document.getElementById('project-list');
+    if (projList) {
+        projList.addEventListener('click', async (e) => {
+            const item = e.target.closest('.project-item');
+            if (!item) return;
             const id = item.dataset.id;
+
+            // Delete Action
+            if (e.target.closest('.delete-chat-btn')) {
+                e.stopPropagation();
+                if (confirm("Delete this chat?")) { // Localize later
+                    await storage.deleteProject(id);
+                    if (currentProject && currentProject.id === id) currentProject = null;
+                    await refreshProjects();
+                }
+                return;
+            }
+
+            // Rename Action
+            if (e.target.closest('.rename-chat-btn')) {
+                e.stopPropagation();
+                UI.showInputModal("Rename Chat", async (newName) => {
+                    const proj = await storage.getProject(id);
+                    if (proj) {
+                        proj.name = newName;
+                        await storage.saveProject(proj);
+                        await refreshProjects();
+                    }
+                });
+                return;
+            }
+
+            // Select
             await loadProject(id);
             UI.renderProjects(await storage.getAllProjects(), id);
-        }
-    });
+        });
+    }
 
-    // Execute
-    document.getElementById('execute-btn').addEventListener('click', executeCommand);
-    document.getElementById('user-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            executeCommand();
-        }
-    });
+    // Execute Command
+    const execBtn = document.getElementById('execute-btn');
+    if (execBtn) execBtn.addEventListener('click', executeCommand);
+
+    const userInput = document.getElementById('user-input');
+    if (userInput) {
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                executeCommand();
+            }
+        });
+    }
+
+    // Reset
+    const resetBtn = document.getElementById('reset-toggle');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async () => {
+            if (confirm("Delete all data and reset app?")) {
+                const projs = await storage.getAllProjects();
+                for (let p of projs) await storage.deleteProject(p.id);
+                window.location.reload();
+            }
+        });
+    }
 
     // Help
-    document.getElementById('help-toggle').addEventListener('click', () => {
-        // Go back to welcome screen (landing state depends on readiness)
-        UI.switchView('welcome');
-        if (appReady) UI.setLandingState('ready');
-        else UI.setLandingState('setup');
-    });
-
-    // Reset App
-    document.getElementById('reset-toggle').addEventListener('click', async () => {
-        const dict = locales[UI.langSelector.value];
-        const c = confirm(dict.confirm_reset);
-        if (c) {
-            const projs = await storage.getAllProjects();
-            for (let p of projs) await storage.deleteProject(p.id);
-            window.location.reload();
-        }
-    });
+    const helpBtn = document.getElementById('help-toggle');
+    if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+            UI.switchView('welcome');
+            if (appReady) UI.setLandingState('ready');
+            else UI.setLandingState('setup');
+        });
+    }
 }
 
 async function executeCommand() {
+    if (!currentProject) await refreshProjects();
+
     const mode = currentProject.apiMode;
 
     if (mode === 'rewriter') {
         const input = UI.rewriterInput.value;
         if (!input) return;
-
-        UI.rewriterOutput.textContent = "Processing..."; // Localize?
+        UI.rewriterOutput.textContent = "Processing...";
         try {
             if (!currentSession) {
                 currentSession = await aiSwitchboard.createSession({
                     tone: 'more-formal',
-                    length: 'as-is'
-                }, monitorDownload);
+                    length: 'as-is',
+                    monitor: monitorDownload
+                });
             }
             const result = await currentSession.rewrite(input);
             UI.rewriterOutput.textContent = result;
@@ -233,14 +273,27 @@ async function runGenerativeLoop(input) {
     try {
         if (!currentSession) {
             currentSession = await aiSwitchboard.createSession({
-                systemPrompt: currentProject.systemPrompt
-            }, monitorDownload);
+                systemPrompt: currentProject.systemPrompt,
+                monitor: monitorDownload
+            });
         }
 
         const stream = currentSession.promptStreaming(input);
 
+        let isFirst = true;
+
         for await (const chunk of stream) {
-            fullResponse = chunk;
+            // Robust accumulation logic
+            if (isFirst) {
+                fullResponse = chunk;
+                isFirst = false;
+            } else {
+                if (chunk.startsWith && chunk.startsWith(fullResponse)) {
+                    fullResponse = chunk;
+                } else {
+                    fullResponse += chunk;
+                }
+            }
             UI.updateMessageContent(responseContainer, fullResponse);
         }
 
@@ -265,7 +318,7 @@ function monitorDownload(m) {
 
 function monitorError(e) {
     console.error(e);
-    if (e.message.includes('download') || e.message === 'Target model not ready') {
+    if (e.message && (e.message.includes('download') || e.message === 'Target model not ready')) {
         UI.showLoader(true);
     }
 }

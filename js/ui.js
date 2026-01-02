@@ -72,8 +72,23 @@ export const UI = {
         projects.forEach(p => {
             const div = document.createElement('div');
             div.className = `project-item ${p.id === activeId ? 'active' : ''}`;
-            div.textContent = p.name;
             div.dataset.id = p.id;
+
+            // Name
+            const span = document.createElement('span');
+            span.className = 'project-name';
+            span.textContent = p.name;
+
+            // Actions
+            const actions = document.createElement('div');
+            actions.className = 'project-actions';
+            actions.innerHTML = `
+                <button class="rename-chat-btn" title="Rename">✏️</button>
+                <button class="delete-chat-btn" title="Delete">🗑️</button>
+            `;
+
+            div.appendChild(span);
+            div.appendChild(actions);
             elements.projectList.appendChild(div);
         });
     },

@@ -130,6 +130,9 @@ select:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .project-item:hover {
@@ -141,6 +144,36 @@ select:focus {
     border-left-color: var(--primary-color);
     background: var(--surface-charcoal);
     color: var(--primary-color);
+}
+
+.project-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.project-item:hover .project-actions {
+    opacity: 1;
+}
+
+.project-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 2px 4px;
+    opacity: 0.6;
+    color: var(--text-dim);
+}
+
+.project-actions button:hover {
+    opacity: 1;
+    color: var(--text-main);
+}
+
+.project-actions button.delete-chat-btn:hover {
+    color: var(--status-red);
 }
 
 .sidebar-btn {

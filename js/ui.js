@@ -186,10 +186,13 @@ export const UI = {
                         Protocol: ${report.protocol} (must be https: or localhost)<br>
                         <br>
                         <hr style="opacity:0.2; margin:5px 0">
-                        1. <strong>Flags enabled?</strong> (Prompt API, Optimization Guide)<br>
-                        2. <strong>chrome://components</strong> -> Check 'Optimization Guide On Device Model'<br>
-                        3. Restart Browser
+                        1. <strong>Incognito Mode?</strong> (AI disabled in Incognito)<br>
+                        2. <strong>Flags enabled?</strong> (Prompt API, Optimization Guide)<br>
+                        3. <strong>chrome://components</strong> -> Check 'Optimization Guide On Device Model'<br>
+                        <br>
+                         <button id="deep-probe-btn" style="background:#333; color:#fff; border:1px solid #555; padding:4px 8px; cursor:pointer; font-size:0.8em;">🔬 Run Deep Probe</button>
                     </div>
+                    <div id="probe-result" style="font-size:0.8em; margin-top:5px; color:#aaa; white-space: pre-wrap;"></div>
                 </div>`;
         }
 
@@ -199,6 +202,14 @@ export const UI = {
             <div class="diag-item"><span>${dict.diag_writer}:</span> ${getLabel(report.writerAPI)}</div>
             <div class="diag-item"><span>${dict.diag_rewriter}:</span> ${getLabel(report.rewriterAPI)}</div>
          `;
+
+        const probeBtn = document.getElementById('deep-probe-btn');
+        if (probeBtn) {
+            probeBtn.onclick = async () => {
+                const res = await window.aiSwitchboard.probeEnvironment();
+                document.getElementById('probe-result').textContent = JSON.stringify(res, null, 2);
+            };
+        }
     },
 
     switchView(mode) {

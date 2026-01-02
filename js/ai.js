@@ -187,6 +187,33 @@ class AISwitchboard {
         }
         return report;
     }
+
+    async probeEnvironment() {
+        const findings = [];
+        // Check potential namespaces
+        ['ai', 'model', 'gemini', 'chromeAI', 'googleAI'].forEach(key => {
+            if (window[key]) findings.push(`window.${key} found`);
+        });
+
+        if (navigator.ai) findings.push('navigator.ai found');
+
+        // Storage check (Incognito often has strict quotas or no persistence)
+        let storageType = 'Standard';
+        try {
+            if (navigator.storage && navigator.storage.estimate) {
+                const est = await navigator.storage.estimate();
+                if (est.quota < 400000000) storageType = 'Low Quota (Incognito?)';
+            }
+        } catch (e) { }
+
+        const result = {
+            findings: findings.length ? findings.join(', ') : 'None',
+            storage: storageType,
+            userAgent: navigator.userAgent
+        };
+        console.log("Deep Probe Result:", result);
+        return result;
+    }
 }
 
 export const aiSwitchboard = new AISwitchboard();

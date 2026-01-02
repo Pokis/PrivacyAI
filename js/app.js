@@ -8,6 +8,9 @@ let currentProject = null;
 let currentSession = null;
 let appReady = false;
 
+// Expose for diagnostics
+window.aiSwitchboard = aiSwitchboard;
+
 const UUID = () => crypto.randomUUID();
 
 async function init() {

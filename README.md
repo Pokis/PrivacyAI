@@ -2,6 +2,8 @@
 
 **PrivacyAI** is a private, local-first AI assistant that runs entirely in your browser. It uses Google Chrome's built-in Gemini Nano model to provide Chat, Writing, and Editing capabilities without sending a single byte of your data to the cloud.
 
+### 🔗 [**Try it Live**](https://pokis.github.io/PrivacyAI/)
+
 <div align="center">
   <img src="docs/demo.gif" alt="PrivacyAI Demo" width="100%">
 </div>

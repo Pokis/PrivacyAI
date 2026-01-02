@@ -41,6 +41,19 @@ export const locales = {
         typing: "AI is writing...",
         writer_placeholder: "Describe what you want to write...",
         writer_btn: "Generate Draft",
+        run_btn: "▶ Run",
+        writer_btn: "Generate Draft",
+        run_btn: "▶ Run",
+        about_btn: "ℹ️ About",
+        about_title: "About PrivacyAI",
+        about_content: "PrivacyAI runs Google's Nano Gemini model directly in your Chrome browser. <br><br><strong>Why is it private?</strong><br>No data is sent to the cloud. Your chats, prompts, and edits stay on this device.<br><br><strong>Simulated Modes:</strong><br>Writer and Editor modes use the generic Prompt API with specialized system instructions to perform their tasks.",
+        faq_title: "Frequently Asked Questions",
+        faq_items: [
+            { q: "Is my data private?", a: "Yes. All AI processing happens locally on your device. No text is sent to the cloud." },
+            { q: "Why 'Writer' vs 'Chat'?", a: "Chat is for conversation. Writer is optimized for drafting content without conversational filler." },
+            { q: "What is 'Editor' mode?", a: "Editor allows you to paste text and have the AI rewrite it to be more formal, casual, or shorter." },
+            { q: "Why 'Not Supported'?", a: "Check if you have enabled the required Chrome Flags in chrome://flags." }
+        ],
         editor_original: "Original Text",
         editor_improved: "Improved Version",
         editor_placeholder: "Paste text to fix...",
@@ -93,7 +106,22 @@ export const locales = {
         loading_ai: "Siunčiamas AI modelis...",
         mode_desc_chat: "Privatus pokalbis su AI.",
         mode_desc_writer: "Kurkite tekstus, el. laiškus.",
-        mode_desc_editor: "Taisykite klaidas ir stilių."
+        mode_desc_editor: "Taisykite klaidas ir stilių.",
+        settings: "Nustatymai",
+        system_prompt_label: "Sistemos Instrukcija",
+        save: "Išsaugoti",
+        run_btn: "▶ Vykdyti",
+        run_btn: "▶ Vykdyti",
+        about_btn: "ℹ️ Apie",
+        about_title: "Apie PrivacyAI",
+        about_content: "PrivacyAI naudoja Google Nano Gemini modelį tiesiogiai jūsų naršyklėje. <br><br><strong>Privatumas:</strong><br>Jokie duomenys nėra siunčiami į debesis.<br><br><strong>Simuliacija:</strong><br>Rašymo ir Redagavimo režimai naudoja bendrąjį AI su specialiomis instrukcijomis.",
+        faq_title: "D.U.K.",
+        faq_items: [
+            { q: "Ar mano duomenys saugūs?", a: "Taip. Viskas vyksta jūsų kompiuteryje, naudojant Google Nano Gemini modelį. Joks tekstas nėra siunčiamas į debesį." },
+            { q: "Kuo skiriasi 'Rašytojas' nuo 'Pokalbio'?", a: "Pokalbis skirtas bendravimui. Rašytojas optimizuotas kurti ilgus tekstus, laiškus ar straipsnius be nereikalingų pokalbio intarpų." },
+            { q: "Kas yra 'Redaktoriaus' režimas?", a: "Redaktorius leidžia įklijuoti tekstą ir paprašyti AI jį perrašyti formaliau, trumpiau ar tiesiog pataisyti stilių." },
+            { q: "Kodėl rodo 'Nepalaikoma'?", a: "Patikrinkite ar įjungėte visas reikiamas Chrome Flags parinktis chrome://flags puslapyje." }
+        ]
     },
     pl: {
         brand: "PrywatneAI",
@@ -135,7 +163,22 @@ export const locales = {
         loading_ai: "Pobieranie modelu AI...",
         mode_desc_chat: "Rozmawiaj prywatnie z AI.",
         mode_desc_writer: "Generuj teksty i e-maile.",
-        mode_desc_editor: "Poprawiaj błędy i styl."
+        mode_desc_editor: "Poprawiaj błędy i styl.",
+        settings: "Ustawienia",
+        system_prompt_label: "Prompt Systemowy",
+        save: "Zapisz",
+        run_btn: "▶ Uruchom",
+        run_btn: "▶ Uruchom",
+        about_btn: "ℹ️ O programie",
+        about_title: "O PrivacyAI",
+        about_content: "PrivacyAI działa lokalnie w przeglądarce Chrome. <br><br><strong>Prywatność:</strong><br>Brak danych w chmurze.<br><br><strong>Tryb Symulowany:</strong><br>Używamy ogólnego modelu Chat AI do zadań specjalnych.",
+        faq_title: "FAQ",
+        faq_items: [
+            { q: "Czy moje dane są prywatne?", a: "Tak. Całe przetwarzanie AI odbywa się lokalnie na Twoim urządzeniu. Żaden tekst nie jest wysyłany do chmury." },
+            { q: "Czym różni się 'Pisarz' od 'Czatu'?", a: "Czat służy do rozmowy. Pisarz jest zoptymalizowany do tworzenia długich treści, takich jak e-maile czy artykuły." },
+            { q: "Co to jest tryb 'Edytor'?", a: "Edytor pozwala wkleić tekst i poprosić AI o jego poprawienie, zmianę tonu na bardziej formalny lub skrócenie." },
+            { q: "Dlaczego 'Brak wsparcia'?", a: "Sprawdź, czy włączyłeś wymagane flagi Chrome w chrome://flags." }
+        ]
     },
     de: {
         brand: "PrivatAI",
@@ -177,7 +220,22 @@ export const locales = {
         loading_ai: "KI-Modell wird geladen...",
         mode_desc_chat: "Privater KI-Chat.",
         mode_desc_writer: "Texte verfassen.",
-        mode_desc_editor: "Stil verbessern."
+        mode_desc_editor: "Stil verbessern.",
+        settings: "Einstellungen",
+        system_prompt_label: "System-Prompt",
+        save: "Speichern",
+        run_btn: "▶ Ausführen",
+        run_btn: "▶ Ausführen",
+        about_btn: "ℹ️ Über",
+        about_title: "Über PrivacyAI",
+        about_content: "PrivacyAI läuft lokal in Ihrem Chrome-Browser. <br><br><strong>Privatsphäre:</strong><br>Keine Daten verlassen Ihr Gerät.<br><br><strong>Simuliert:</strong><br>Spezialmodi nutzen die Standard-Chat-API.",
+        faq_title: "FAQ",
+        faq_items: [
+            { q: "Ist das privat?", a: "Ja. Die gesamte KI-Verarbeitung erfolgt lokal auf Ihrem Gerät. Es werden keine Daten in die Cloud gesendet." },
+            { q: "Warum 'Autor' vs 'Chat'?", a: "Chat ist für Unterhaltungen. Der Autor-Modus ist für das Verfassen langer Texte wie E-Mails oder Artikel optimiert." },
+            { q: "Was ist der 'Editor'-Modus?", a: "Mit dem Editor können Sie Text einfügen und von der KI umschreiben, formaler gestalten oder kürzen lassen." },
+            { q: "Warum 'Nicht unterstützt'?", a: "Überprüfen Sie, ob Sie die erforderlichen Chrome-Flags unter chrome://flags aktiviert haben." }
+        ]
     },
     es: {
         brand: "PrivacidadAI",
@@ -219,7 +277,22 @@ export const locales = {
         loading_ai: "Descargando modelo...",
         mode_desc_chat: "Chat privado.",
         mode_desc_writer: "Escribir contenido.",
-        mode_desc_editor: "Corregir textos."
+        mode_desc_editor: "Corregir textos.",
+        settings: "Ajustes",
+        system_prompt_label: "Prompt del Sistema",
+        save: "Guardar",
+        run_btn: "▶ Ejecutar",
+        run_btn: "▶ Ejecutar",
+        about_btn: "ℹ️ Acerca de",
+        about_title: "Sobre PrivacyAI",
+        about_content: "PrivacyAI se ejecuta localmente. <br><br><strong>Privacidad:</strong><br>Sin nube.<br><br><strong>Simulado:</strong><br>Usamos la API de Chat estándar.",
+        faq_title: "Preguntas Frecuentes",
+        faq_items: [
+            { q: "¿Son privados mis datos?", a: "Sí. Todo el procesamiento de IA ocurre localmente en su dispositivo. No se envía texto a la nube." },
+            { q: "¿Por qué 'Escritor' vs 'Chat'?", a: "El chat es para conversar. El modo Escritor está optimizado para generar contenido largo como correos electrónicos sin relleno conversacional." },
+            { q: "¿Qué es el modo 'Editor'?", a: "El editor le permite pegar texto y hacer que la IA lo reescriba para que sea más formal, casual o más corto." },
+            { q: "¿Por qué 'No soportado'?", a: "Verifique si ha habilitado las Chrome Flags requeridas en chrome://flags." }
+        ]
     },
     ja: {
         brand: "プライバシーAI",
@@ -261,6 +334,21 @@ export const locales = {
         loading_ai: "モデルをダウンロード中...",
         mode_desc_chat: "プライベートなAIチャット",
         mode_desc_writer: "文章作成",
-        mode_desc_editor: "校正・編集"
+        mode_desc_editor: "校正・編集",
+        settings: "設定",
+        system_prompt_label: "システムプロンプト",
+        save: "保存",
+        run_btn: "▶ 実行",
+        run_btn: "▶ 実行",
+        about_btn: "ℹ️ アプリについて",
+        about_title: "PrivacyAIについて",
+        about_content: "PrivacyAIはブラウザ内でローカルに動作します。<br><br><strong>プライバシー:</strong><br>クラウド送信なし。<br><br><strong>シミュレーション:</strong><br>標準のチャットAPIを使用します。",
+        faq_title: "よくある質問",
+        faq_items: [
+            { q: "データは安全ですか？", a: "はい。すべてのAI処理はデバイス上でローカルに行われます。テキストがクラウドに送信されることはありません。" },
+            { q: "「執筆」と「チャット」の違いは？", a: "チャットは会話用です。執筆モードは、会話的なつなぎ言葉なしでメールや記事などの長文を作成するのに最適化されています。" },
+            { q: "「編集」モードとは？", a: "編集モードでは、テキストを貼り付けて、AIに修正、フォーマル化、または要約を依頼できます。" },
+            { q: "なぜ「非対応」なのですか？", a: "chrome://flags で必要なフラグが有効になっているか確認してください。" }
+        ]
     }
 };

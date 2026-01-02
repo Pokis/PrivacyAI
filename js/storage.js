@@ -24,13 +24,14 @@ class StorageManager {
             };
 
             request.onsuccess = (event) => {
+                // alert("DB Opened Successfully");
                 this.db = event.target.result;
                 resolve();
             };
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                
+
                 // Projects Store: id (key), name, systemPrompt, history, type
                 if (!db.objectStoreNames.contains(STORE_PROJECTS)) {
                     db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });

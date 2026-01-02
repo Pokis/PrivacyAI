@@ -61,6 +61,8 @@
             </nav>
 
             <div class="bottom-controls">
+                <div id="settings-toggle" class="sidebar-item" data-i18n="settings">⚙️ Settings</div>
+                <div id="about-toggle" class="sidebar-item" data-i18n="about_btn">ℹ️ About</div>
                 <div id="reset-toggle" class="sidebar-item" data-i18n="reset_app">⚠️ Reset App</div>
                 <div id="help-toggle" class="sidebar-item" data-i18n="help">❓ Help</div>
             </div>
@@ -118,15 +120,45 @@
                             </div>
                         </div>
                         <button id="retry-btn" class="secondary-btn" data-i18n="retry_btn">Check Again</button>
+                        <!-- FAQ Section -->
+                        <div class="faq-container">
+                            <h3>FAQ</h3>
+                            <details>
+                                <summary>Is my data private?</summary>
+                                <p>Yes. All AI processing happens locally on your device using Chrome's built-in Nano
+                                    Gemini model. No text is sent to the cloud.</p>
+                            </details>
+                            <details>
+                                <summary>Why "Writer" vs "Chat"?</summary>
+                                <p><strong>Chat</strong> is for conversation. <strong>Writer</strong> is optimized for
+                                    generating long-form content like emails or stories without conversational filler.
+                                </p>
+                            </details>
+                            <details>
+                                <summary>What is "Editor" mode?</summary>
+                                <p>Editor allows you to paste text and have the AI rewrite it to be more formal, casual,
+                                    or shorter.</p>
+                            </details>
+                            <details>
+                                <summary>Why does it say "Not Supported"?</summary>
+                                <p>You probably need to enable Chrome Flags. Check the "Setup Required" section or click
+                                    "Help".</p>
+                            </details>
+                        </div>
                     </div>
                 </div>
             </div>
 
+
             <!-- Editor Split View -->
             <div id="re-writer-split" class="hidden">
                 <div class="panel left">
-                    <div class="panel-label" data-i18n="editor_original">Original Text</div>
-                    <textarea id="rewriter-input"></textarea> <!-- placeholder set via JS -->
+                    <div class="panel-header">
+                        <div class="panel-label" data-i18n="editor_original">Original Text</div>
+                        <button id="rewriter-submit-btn" class="primary-btn small" data-i18n="run_btn">▶
+                            Run</button>
+                    </div>
+                    <textarea id="rewriter-input"></textarea>
                 </div>
                 <div class="panel right">
                     <div class="panel-label" data-i18n="editor_improved">Improved Version</div>
@@ -140,13 +172,13 @@
 
                 <div id="input-deck">
                     <div class="typing-indicator hidden" data-i18n="typing">AI is writing...</div>
-                    <textarea id="user-input"></textarea> <!-- placeholder set via JS -->
+                    <textarea id="user-input"></textarea>
                     <button id="execute-btn" data-i18n="send_btn">Send</button>
                 </div>
             </div>
         </main>
 
-        <!-- Loading Overlay (For Model Download) -->
+        <!-- Loading Overlay -->
         <div id="model-loader" class="hidden">
             <div class="loader-content">
                 <div class="loader-text" data-i18n="loading_ai">Downloading AI Model...</div>
@@ -157,9 +189,10 @@
             </div>
         </div>
 
-        <!-- Custom Input Modal -->
+        <!-- Modals -->
         <div id="input-modal-overlay" class="hidden">
-            <div class="modal-window small">
+            <!-- Input Modal -->
+            <div id="input-modal" class="modal-window small hidden">
                 <div class="modal-header">
                     <span id="input-modal-title">New Chat</span>
                     <button class="close-modal">×</button>
@@ -169,6 +202,24 @@
                     <div class="modal-actions">
                         <button id="input-cancel-btn" class="secondary-btn" data-i18n="cancel">Cancel</button>
                         <button id="input-confirm-btn" class="primary-btn" data-i18n="create">Create</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settings-modal" class="modal-window medium hidden">
+                <div class="modal-header">
+                    <span data-i18n="settings">Settings</span>
+                    <button class="close-modal">×</button>
+                </div>
+                <div class="modal-body">
+                    <label for="system-prompt-input" class="input-label" data-i18n="system_prompt_label">System
+                        Prompt</label>
+                    <textarea id="system-prompt-input" rows="4"></textarea>
+                    <div class="modal-help">Define how the AI behaves (e.g., "You are a coding expert").</div>
+
+                    <div class="modal-actions">
+                        <button id="settings-save-btn" class="primary-btn" data-i18n="save">Save</button>
                     </div>
                 </div>
             </div>

@@ -399,6 +399,10 @@ select:focus {
     width: 100%;
     text-align: center;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    max-height: 90vh;
+    /* Prevent overflowing screen */
+    overflow-y: auto;
+    /* Allow internal scrolling if content is tall */
 }
 
 .welcome-card h1 {
@@ -627,6 +631,129 @@ select:focus {
     transition: width 0.3s;
 }
 
+/* FAQ */
+.faq-container {
+    margin-top: 3rem;
+    text-align: left;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+}
+
+.faq-container h3 {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+details {
+    margin-bottom: 0.8rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+}
+
+summary {
+    padding: 0.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    list-style: none;
+    /* Hide default triangle */
+    position: relative;
+    padding-left: 2rem;
+}
+
+summary::before {
+    content: "▶";
+    font-size: 0.7em;
+    position: absolute;
+    left: 10px;
+    top: 14px;
+    transition: transform 0.2s;
+}
+
+details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+details p {
+    padding: 0 1rem 1rem 2rem;
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+}
+
+/* Editor Panel Header */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.primary-btn.small {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+/* Icons & Badges */
+.shield-icon {
+    color: var(--primary-color);
+}
+
+.mode-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    margin-right: 6px;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* Modals */
+.modal-window.medium {
+    width: 600px;
+    background: var(--surface-card);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.input-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+textarea#system-prompt-input {
+    width: 100%;
+    background: var(--bg-deep-black);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 1rem;
+    border-radius: 8px;
+    resize: vertical;
+    font-family: var(--font-mono);
+    margin-bottom: 0.5rem;
+}
+
+.modal-help {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+    font-style: italic;
+}
+
+.modal-window.hidden {
+    display: none;
+}
+
+/* Animation */
 @keyframes spin {
     0% {
         transform: rotate(0deg);

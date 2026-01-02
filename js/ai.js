@@ -49,19 +49,7 @@ class WriterStrategy extends AIStrategy {
             });
         }
 
-        // Fallback to LanguageModel with "Writer" persona
-        const factory = window.ai?.languageModel || window.LanguageModel;
-        if (!factory) throw new Error("WRITER_API_MISSING");
-
-        console.log("Using LanguageModel as Writer fallback");
-        const config = {
-            systemPrompt: "You are a professional writing assistant. " + (options.sharedContext || "")
-        };
-        // Wrap result to match Writer API interface if needed, but for now returning LM session
-        // Note: usage in app.js might need adjustment if APIs differ significantly.
-        // For this app, app.js calls .promptStreaming which both have.
-        if (factory.create) return await factory.create(config);
-        return new factory(config);
+        throw new Error("WRITER_API_MISSING");
     }
 }
 
@@ -77,22 +65,7 @@ class RewriterStrategy extends AIStrategy {
             });
         }
 
-        // Fallback to LanguageModel
-        const factory = window.ai?.languageModel || window.LanguageModel;
-        if (!factory) throw new Error("REWRITER_API_MISSING");
-
-        console.log("Using LanguageModel as Rewriter fallback");
-        const config = {
-            systemPrompt: `Rewrite the following text. Tone: ${options.tone || 'formal'}. Length: ${options.length || 'same'}. return ONLY the rewritten text.`
-        };
-
-        const session = factory.create ? await factory.create(config) : new factory(config);
-
-        // Mock the 'rewrite' method expecting by app.js
-        session.rewrite = async (text) => {
-            return await session.prompt(text);
-        };
-        return session;
+        throw new Error("REWRITER_API_MISSING");
     }
 }
 

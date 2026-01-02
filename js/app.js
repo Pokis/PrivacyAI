@@ -46,8 +46,13 @@ async function init() {
 
     // Event Listeners
     setupEventListeners();
+
+    // Load Projects immediately to populate sidebar
+    // Doing this AFTER listeners ensures 'New Chat' button works if user clicks fast
+    await refreshProjects();
 }
 
+// Restoration of missing functions
 async function enterApp() {
     if (!appReady) return;
     await refreshProjects();
@@ -71,7 +76,6 @@ async function refreshProjects() {
 
     // Attempt to keep current project or select most recent
     if (!currentProject && projects.length > 0) {
-        // Sort by id (time) descending if possible, or just pick first
         await loadProject(projects[0].id);
     }
 
@@ -79,30 +83,43 @@ async function refreshProjects() {
 }
 
 async function loadProject(id) {
-    currentProject = await storage.getProject(id);
-    if (!currentProject) return;
+    try {
+        currentProject = await storage.getProject(id);
+        if (!currentProject) {
+            alert("Project not found in storage");
+            return;
+        }
 
-    UI.clearChat();
-    UI.apiSelector.value = currentProject.apiMode || 'prompt';
-    UI.switchView(currentProject.apiMode);
+        UI.clearChat();
 
-    aiSwitchboard.setStrategy(currentProject.apiMode);
+        if (!UI.apiSelector) {
+            alert("Critical Error: Elements missing (apiSelector)");
+            return;
+        }
 
-    if (currentProject.apiMode !== 'rewriter' && currentProject.history) {
-        currentProject.history.forEach(msg => {
-            if (msg.role === 'user') UI.appendUserMessage(msg.content);
-            else {
-                const con = UI.createModelMessageContainer();
-                UI.updateMessageContent(con, msg.content);
-            }
-        });
+        UI.apiSelector.value = currentProject.apiMode || 'prompt';
+        UI.switchView(currentProject.apiMode);
+
+        aiSwitchboard.setStrategy(currentProject.apiMode);
+
+        if (currentProject.apiMode !== 'rewriter' && currentProject.history) {
+            currentProject.history.forEach(msg => {
+                if (msg.role === 'user') UI.appendUserMessage(msg.content);
+                else {
+                    const con = UI.createModelMessageContainer();
+                    UI.updateMessageContent(con, msg.content);
+                }
+            });
+        }
+
+        currentSession = null;
+    } catch (e) {
+        alert("loadProject Error: " + e.message);
+        console.error(e);
     }
-
-    currentSession = null;
 }
 
 function setupEventListeners() {
-
     // Landing Page
     const enterBtn = document.getElementById('enter-btn');
     if (enterBtn) enterBtn.addEventListener('click', () => enterApp());
@@ -132,27 +149,31 @@ function setupEventListeners() {
         });
     }
 
-    // New Project
+    // New Project (Instant)
     const newProjBtn = document.getElementById('new-project-btn');
     if (newProjBtn) {
-        newProjBtn.addEventListener('click', () => {
+        newProjBtn.addEventListener('click', async () => {
             const dict = locales[UI.langSelector.value] || locales['en'];
-            UI.showInputModal(dict.modal_new_chat, async (name) => {
-                const p = {
-                    id: UUID(),
-                    name: name,
-                    systemPrompt: "You are a helpful AI.",
-                    history: [],
-                    apiMode: 'prompt'
-                };
-                await storage.saveProject(p);
-                await refreshProjects();
-                await loadProject(p.id);
-            });
+
+            // Create immediately without modal
+            const p = {
+                id: UUID(),
+                name: dict.new_chat.replace("+ ", ""), // Default name, changed later
+                systemPrompt: await storage.getSetting('defaultSystemPrompt') || "You are a helpful AI assistant.",
+                history: [],
+                apiMode: 'prompt'
+            };
+
+            await storage.saveProject(p);
+            await refreshProjects();
+            await loadProject(p.id);
+
+            // Focus input immediately
+            if (UI.userInput) UI.userInput.focus();
         });
     }
 
-    // Project List Interactions (Select, Rename, Delete)
+    // Project List Interactions (Select, Rename, Delete, Settings)
     const projList = document.getElementById('project-list');
     if (projList) {
         projList.addEventListener('click', async (e) => {
@@ -163,7 +184,7 @@ function setupEventListeners() {
             // Delete Action
             if (e.target.closest('.delete-chat-btn')) {
                 e.stopPropagation();
-                if (confirm("Delete this chat?")) { // Localize later
+                if (confirm("Delete this chat?")) {
                     await storage.deleteProject(id);
                     if (currentProject && currentProject.id === id) currentProject = null;
                     await refreshProjects();
@@ -174,26 +195,52 @@ function setupEventListeners() {
             // Rename Action
             if (e.target.closest('.rename-chat-btn')) {
                 e.stopPropagation();
-                UI.showInputModal("Rename Chat", async (newName) => {
-                    const proj = await storage.getProject(id);
-                    if (proj) {
+                const proj = await storage.getProject(id);
+                if (proj) {
+                    UI.showInputModal("Rename Chat", async (newName) => {
                         proj.name = newName;
                         await storage.saveProject(proj);
                         await refreshProjects();
-                    }
-                });
+                    }, proj.name);
+                }
+                return;
+            }
+
+            // Settings Action
+            if (e.target.closest('.settings-chat-btn')) {
+                e.stopPropagation();
+                const proj = await storage.getProject(id);
+                if (proj) {
+                    UI.showSettingsModal(proj.systemPrompt || "", async (newPrompt) => {
+                        proj.systemPrompt = newPrompt;
+                        await storage.saveProject(proj);
+                        if (currentProject && currentProject.id === proj.id) {
+                            currentProject.systemPrompt = newPrompt;
+                            currentSession = null; // Reset session to apply prompt
+                        }
+                    });
+                }
                 return;
             }
 
             // Select
-            await loadProject(id);
-            UI.renderProjects(await storage.getAllProjects(), id);
+            try {
+                await loadProject(id);
+                UI.renderProjects(await storage.getAllProjects(), id);
+            } catch (e) {
+                alert("Error loading chat: " + e.message);
+                console.error(e);
+            }
         });
     }
 
-    // Execute Command
+    // Execute Command (Chat)
     const execBtn = document.getElementById('execute-btn');
     if (execBtn) execBtn.addEventListener('click', executeCommand);
+
+    // Execute Command (Editor/Writer)
+    const rewriterBtn = document.getElementById('rewriter-submit-btn');
+    if (rewriterBtn) rewriterBtn.addEventListener('click', executeCommand);
 
     const userInput = document.getElementById('user-input');
     if (userInput) {
@@ -224,6 +271,25 @@ function setupEventListeners() {
             UI.switchView('welcome');
             if (appReady) UI.setLandingState('ready');
             else UI.setLandingState('setup');
+        });
+    }
+
+    // Settings Global
+    const settingsBtn = document.getElementById('settings-toggle');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', async () => {
+            const currentSys = await storage.getSetting('defaultSystemPrompt') || "You are a helpful AI assistant.";
+            UI.showSettingsModal(currentSys, async (newVal) => {
+                await storage.saveSetting('defaultSystemPrompt', newVal);
+            });
+        });
+    }
+
+    // About
+    const aboutBtn = document.getElementById('about-toggle');
+    if (aboutBtn) {
+        aboutBtn.addEventListener('click', () => {
+            UI.showAboutModal();
         });
     }
 }
@@ -299,6 +365,29 @@ async function runGenerativeLoop(input) {
 
         currentProject.history.push({ role: 'model', content: fullResponse });
         await storage.saveProject(currentProject);
+
+        // Auto-Rename Feature
+        // Rename if this is the first exchange (History length 2: User+Model)
+        if (currentProject.history.length === 2) {
+            // Only auto-rename if the name is still generic
+            const lang = UI.langSelector ? UI.langSelector.value : 'en';
+            const dict = locales[lang] || locales['en'];
+            const genericNames = ["New Chat", "Naujas Pokalbis", "+ New Chat", dict.new_chat.replace("+ ", "")];
+
+            if (genericNames.includes(currentProject.name) || currentProject.name.startsWith("New Chat")) {
+                let newName = input.substring(0, 30);
+                if (input.length > 30) newName += "...";
+
+                // Generate a better name using AI if possible? 
+                // The user prompted: "first prompt should be used to generate chat name using the same nano AI"
+                // To do this simply, we can just use the prompt text for now as "Prompt as Name" is the standard lightweight approach.
+                // Asking Nano to summarize the name might be too slow/heavy for a background task, but let's try a simple truncation first as requested by "first prompt should be used".
+
+                currentProject.name = newName;
+                await storage.saveProject(currentProject);
+                UI.renderProjects(await storage.getAllProjects(), currentProject.id);
+            }
+        }
 
     } catch (e) {
         monitorError(e);

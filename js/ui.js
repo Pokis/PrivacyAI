@@ -56,6 +56,9 @@ export const UI = {
 
         // Update Mode Description
         this.updateModeDescription(elements.apiSelector.value);
+
+        // Update FAQ if visible
+        this.renderFAQ();
     },
 
     updateModeDescription(mode) {
@@ -126,15 +129,21 @@ export const UI = {
         elements.outputStream.scrollTop = elements.outputStream.scrollHeight;
     },
 
-    setHardwareStatus(statusKey) { // Dictionary Key
+    setHardwareStatus(statusKey) { // Dictionary Key or internal status string
         const dict = locales[currentLang];
-        const text = dict[statusKey] || statusKey;
-        elements.hardwareStatus.textContent = text;
+        // Map internal status strings to keys if needed, or use directly if key exists
+        let text = dict[statusKey] || statusKey;
 
-        if (statusKey === 'status_ready') {
+        // Fix: 'simulated' and 'available' are GOOD states.
+        const validStates = ['status_ready', 'status_after_download', 'available', 'readily', 'simulated'];
+        const isReady = validStates.includes(statusKey) || statusKey === 'readily (implied)';
+
+        if (isReady) {
+            elements.hardwareStatus.textContent = dict.status_ready || "Ready";
             elements.hardwareStatus.style.background = 'rgba(76, 175, 80, 0.1)';
             elements.hardwareStatus.style.color = 'var(--status-green)';
         } else {
+            elements.hardwareStatus.textContent = dict.status_unsupported;
             elements.hardwareStatus.style.background = 'rgba(244, 67, 54, 0.1)';
             elements.hardwareStatus.style.color = 'var(--status-red)';
         }
@@ -152,36 +161,37 @@ export const UI = {
         elements.loaderStatus.textContent = `${percent}%`;
     },
 
-    // Landing Page State Management
     setLandingState(state, report = null) {
-        // state: 'loading' | 'ready' | 'setup'
         elements.landingLoading.classList.add('hidden');
         elements.landingReady.classList.add('hidden');
         elements.landingSetup.classList.add('hidden');
 
         if (state === 'loading') elements.landingLoading.classList.remove('hidden');
-        if (state === 'ready') elements.landingReady.classList.remove('hidden');
+        if (state === 'ready') {
+            elements.landingReady.classList.remove('hidden');
+            this.renderFAQ(); // Ensure FAQ is visible
+        }
         if (state === 'setup') {
             elements.landingSetup.classList.remove('hidden');
             if (report) this.renderDiagnostics(report);
+            this.renderFAQ();
         }
     },
 
     renderDiagnostics(report) {
-        // Create or clear a diag container inside setup
         let container = document.getElementById('diag-container');
         if (!container) {
             container = document.createElement('div');
             container.id = 'diag-container';
             container.className = 'diag-box';
-            // Insert before verify button
             const btn = document.getElementById('retry-btn');
             btn.parentNode.insertBefore(container, btn);
         }
 
         const dict = locales[currentLang];
         const getLabel = (status) => {
-            if (status === 'readily') return `<span class="ok">✅ ${dict.status_readily}</span>`;
+            if (status === 'readily' || status === 'available') return `<span class="ok">✅ ${dict.status_readily || 'Available'}</span>`;
+            if (status === 'simulated') return `<span class="ok">✅ ${dict.status_simulated || 'Simulated'}</span>`;
             if (status === 'after-download') return `<span class="warn">⬇️ ${dict.status_after_download}</span>`;
             if (status === 'missing') return `<span class="err">❌ ${dict.status_missing}</span>`;
             if (status === 'no') return `<span class="err">❌ ${dict.status_no}</span>`;
@@ -189,8 +199,8 @@ export const UI = {
             return `<span class="warn">⚠️ ${status}</span>`;
         };
 
-        // Check if window.ai is missing entirely
         let baseCheck = "";
+        // ... (rest of baseCheck logic is fine)
         if (!report.windowAI) {
             baseCheck = `
                 <div class="diag-item" style="display:block; margin-bottom:10px;">
@@ -228,7 +238,7 @@ export const UI = {
     },
 
     switchView(mode) {
-        // mode: 'chat' | 'writer' | 'rewriter' | 'welcome'
+        console.log("Switching view to:", mode);
         elements.chatInterface.classList.add('hidden');
         elements.rewriterSplit.classList.add('hidden');
         elements.welcomeScreen.classList.add('hidden');
@@ -238,6 +248,7 @@ export const UI = {
         } else if (mode === 'rewriter') {
             elements.rewriterSplit.classList.remove('hidden');
         } else {
+            console.log("Showing chat interface");
             elements.chatInterface.classList.remove('hidden');
         }
 
@@ -246,14 +257,116 @@ export const UI = {
         }
     },
 
-    showInputModal(title, callback) {
+    renderFAQ() {
+        const container = document.querySelector('.faq-container');
+        if (!container) return;
+        const dict = locales[currentLang];
+        // If we have faq items in dict, render them. If not, fallback to hardcoded keys.
+        // For simplicity, we assume dict.faq is an array of objects {q, a}
+        if (!dict.faq_items) return;
+
+        const html = dict.faq_items.map(item => `
+            <details>
+                <summary>${item.q}</summary>
+                <p>${item.a}</p>
+            </details>
+        `).join('');
+
+        container.innerHTML = `<h3>${dict.faq_title || 'FAQ'}</h3>` + html;
+    },
+
+    showAboutModal() {
+        const dict = locales[currentLang];
+        const overlay = document.getElementById('input-modal-overlay');
+
+        let aboutModal = document.getElementById('about-modal');
+        if (!aboutModal) {
+            aboutModal = document.createElement('div');
+            aboutModal.id = 'about-modal';
+            aboutModal.className = 'modal-window medium hidden';
+            aboutModal.innerHTML = `
+                <div class="modal-header">
+                    <span id="about-title">About</span>
+                    <button class="close-modal" aria-label="Close">×</button>
+                </div>
+                <div class="modal-body" id="about-body" style="line-height:1.6; opacity:0.9;">
+                </div>
+                <div class="modal-actions">
+                     <button class="primary-btn close-modal-btn">Close</button>
+                </div>
+            `;
+            overlay.appendChild(aboutModal);
+
+            const close = () => {
+                aboutModal.classList.add('hidden');
+                overlay.classList.add('hidden');
+            };
+
+            aboutModal.querySelector('.close-modal').addEventListener('click', close);
+            aboutModal.querySelector('.close-modal-btn').addEventListener('click', close);
+        }
+
+        document.getElementById('about-title').textContent = dict.about_title || "About";
+        document.getElementById('about-body').innerHTML = dict.about_content || "PrivacyAI";
+
+        overlay.classList.remove('hidden');
+        document.querySelectorAll('.modal-window').forEach(m => m.classList.add('hidden'));
+        aboutModal.classList.remove('hidden');
+    },
+
+    showSettingsModal(currentPrompt, onSave) {
+        const dict = locales[currentLang];
+        const overlay = document.getElementById('input-modal-overlay');
+        const modal = document.getElementById('settings-modal');
+        const input = document.getElementById('system-prompt-input');
+        const saveBtn = document.getElementById('settings-save-btn');
+
+        input.value = currentPrompt;
+
+        // Update label text
+        modal.querySelector('.modal-header span').textContent = dict.settings;
+        modal.querySelector('.input-label').textContent = dict.system_prompt_label;
+        saveBtn.textContent = dict.save;
+
+        overlay.classList.remove('hidden');
+        document.querySelectorAll('.modal-window').forEach(m => m.classList.add('hidden'));
+        modal.classList.remove('hidden');
+
+        // Wiring
+        const newSave = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSave, saveBtn);
+
+        newSave.addEventListener('click', () => {
+            onSave(input.value);
+            overlay.classList.add('hidden');
+            modal.classList.add('hidden');
+        });
+
+        const closeBtn = modal.querySelector('.close-modal');
+        const newClose = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newClose, closeBtn);
+
+        newClose.addEventListener('click', () => {
+            overlay.classList.add('hidden');
+            modal.classList.add('hidden');
+        });
+    },
+
+    showInputModal(title, callback, defaultValue = '') {
         const titleEl = document.getElementById('input-modal-title');
         if (titleEl) titleEl.textContent = title;
 
         const input = document.getElementById('custom-input-field');
-        input.value = '';
-        document.getElementById('input-modal-overlay').classList.remove('hidden');
+        input.value = defaultValue; // Pre-fill
+
+        const overlay = document.getElementById('input-modal-overlay');
+        const modal = document.getElementById('input-modal');
+
+        overlay.classList.remove('hidden');
+        modal.classList.remove('hidden'); // Ensure inner modal is shown
+
         input.focus();
+        if (defaultValue) input.select(); // Select text for easy overwrite
 
         const confirmBtn = document.getElementById('input-confirm-btn');
         const cancelBtn = document.getElementById('input-cancel-btn');
@@ -288,6 +401,7 @@ export const UI = {
 
     closeInputModal() {
         document.getElementById('input-modal-overlay').classList.add('hidden');
+        document.getElementById('input-modal').classList.add('hidden');
     }
 };
 

@@ -181,8 +181,13 @@ export const UI = {
                 <div class="diag-item" style="display:block; margin-bottom:10px;">
                     <span class="err" style="font-weight:bold">WINDOW.AI MISSING</span>
                     <div style="font-size:0.85em; opacity:0.8; margin-top:4px;">
-                        1. Flags enabled? (Prompt API, Optimization Guide)<br>
-                        2. <strong>chrome://components</strong> -> Check 'Optimization Guide On Device Model' is NOT 0.0.0.0<br>
+                        <strong>Environment Check warning:</strong><br>
+                        Secure Context: ${report.isSecure ? '<span class="ok">YES</span>' : '<span class="err">NO</span>'}<br>
+                        Protocol: ${report.protocol} (must be https: or localhost)<br>
+                        <br>
+                        <hr style="opacity:0.2; margin:5px 0">
+                        1. <strong>Flags enabled?</strong> (Prompt API, Optimization Guide)<br>
+                        2. <strong>chrome://components</strong> -> Check 'Optimization Guide On Device Model'<br>
                         3. Restart Browser
                     </div>
                 </div>`;

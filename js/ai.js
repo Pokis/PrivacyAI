@@ -143,13 +143,28 @@ class AISwitchboard {
     }
     async getDiagnostics() {
         console.log("Checking AI Diagnostics...");
+
+        // Polyfill/Alias check for newer Chrome versions which might use window.model
+        if (!window.ai && window.model) {
+            console.log("Found window.model, aliasing to window.ai");
+            window.ai = window.model;
+        }
+
         console.log("window.ai:", window.ai);
+        console.log("Environment:", {
+            secure: window.isSecureContext,
+            protocol: location.protocol,
+            host: location.host
+        });
+
         if (window.ai) {
             console.log("window.ai capabilities:", Object.keys(window.ai));
         }
 
         const report = {
             windowAI: !!window.ai,
+            isSecure: window.isSecureContext,
+            protocol: location.protocol,
             promptAPI: 'missing',
             writerAPI: 'missing',
             rewriterAPI: 'missing'

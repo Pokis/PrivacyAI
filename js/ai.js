@@ -42,14 +42,30 @@ class WriterStrategy extends AIStrategy {
     getCapabilityName() { return 'writer'; }
 
     async createSession(options, monitorCallback) {
-        // Try native Writer API first
-        if (window.ai?.writer) {
-            return await window.ai.writer.create({
-                sharedContext: options.sharedContext || ""
-            });
-        }
+        if (!window.Writer) throw new Error("WRITER_API_MISSING");
 
-        throw new Error("WRITER_API_MISSING");
+        const session = await window.Writer.create({
+            sharedContext: options.sharedContext || "",
+            monitor(m) {
+                m.addEventListener("downloadprogress", e => {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    console.log(`Writer Download: ${percent}%`);
+                    if (window.UI && UI.showDownloadProgress) UI.showDownloadProgress(percent);
+                });
+            }
+        });
+
+        // Adapter to match app.js expectation of promptStreaming
+        return {
+            session: session,
+            promptStreaming: async function* (prompt) {
+                const stream = session.writeStreaming(prompt);
+                for await (const chunk of stream) {
+                    yield chunk;
+                }
+            },
+            destroy: () => session.destroy()
+        };
     }
 }
 
@@ -57,15 +73,33 @@ class RewriterStrategy extends AIStrategy {
     getCapabilityName() { return 'rewriter'; }
 
     async createSession(options, monitorCallback) {
-        // Try native Rewriter API check
-        if (window.ai?.rewriter) {
-            return await window.ai.rewriter.create({
-                tone: options.tone || 'more-formal',
-                length: options.length || 'as-is'
-            });
-        }
+        if (!window.Rewriter) throw new Error("REWRITER_API_MISSING");
 
-        throw new Error("REWRITER_API_MISSING");
+        const session = await window.Rewriter.create({
+            tone: options.tone || 'more-formal',
+            length: options.length || 'as-is',
+            monitor(m) {
+                m.addEventListener("downloadprogress", e => {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    console.log(`Rewriter Download: ${percent}%`);
+                    if (window.UI && UI.showDownloadProgress) UI.showDownloadProgress(percent);
+                });
+            }
+        });
+
+        // Adapter to match app.js expectation of promptStreaming
+        return {
+            session: session,
+            // Expose rewrite for app.js direct usage
+            rewrite: (text, options) => session.rewrite(text, options),
+            promptStreaming: async function* (input) {
+                const stream = session.rewriteStreaming(input);
+                for await (const chunk of stream) {
+                    yield chunk;
+                }
+            },
+            destroy: () => session.destroy()
+        };
     }
 }
 
@@ -79,16 +113,15 @@ class AISwitchboard {
         this.currentStrategy = this.strategies['prompt'];
     }
 
-    setStrategy(type) {
-        if (this.strategies[type]) {
-            this.currentStrategy = this.strategies[type];
-            return true;
+    setStrategy(mode) {
+        if (this.strategies[mode]) {
+            this.currentStrategy = this.strategies[mode];
+            console.log("Strategy set to:", mode);
         }
-        return false;
     }
 
     async createSession(options, monitorCallback) {
-        return this.currentStrategy.createSession(options, monitorCallback);
+        return await this.currentStrategy.createSession(options, monitorCallback);
     }
 
     async checkAvailability() {
@@ -124,37 +157,51 @@ class AISwitchboard {
         return 'no';
     }
     async getDiagnostics() {
-        console.log("Checking AI Diagnostics...");
-
-        // Polyfill checks
-        const hasLangModel = !!(window.ai?.languageModel || window.LanguageModel);
-
         const report = {
-            windowAI: hasLangModel, // Treat "AI Available" if LanguageModel is found
             isSecure: window.isSecureContext,
-            protocol: location.protocol,
-            promptAPI: 'missing',
-            writerAPI: 'missing',
-            rewriterAPI: 'missing'
+            protocol: window.location.protocol,
+            // Broad check for any AI capability
+            windowAI: !!(window.ai || window.Writer || window.Rewriter || window.LanguageModel),
+            promptAPI: 'checking...',
+            writerAPI: 'checking...',
+            rewriterAPI: 'checking...'
         };
 
-        if (hasLangModel) {
-            const factory = window.ai?.languageModel || window.LanguageModel;
-            try {
-                // Check if factory itself has availability
-                if (factory.availability) {
-                    report.promptAPI = await factory.availability();
+        // Check Prompt API (LangaugeModel)
+        try {
+            const lm = window.ai?.languageModel || window.LanguageModel;
+            if (lm) {
+                if (lm.capabilities) {
+                    const capabilities = await lm.capabilities();
+                    report.promptAPI = capabilities.available === 'readily' ? 'available' : capabilities.available;
                 } else {
-                    // Check if it's a constructor we can perform a "capabilities" check on?
-                    // Or just assume readily if it exists
-                    report.promptAPI = 'readily (implied)';
+                    report.promptAPI = 'available'; // Implied if class exists
                 }
-            } catch (e) { report.promptAPI = 'error'; }
+            } else {
+                report.promptAPI = 'missing';
+            }
+        } catch (e) { report.promptAPI = 'error'; }
 
-            // Writer/Rewriter are now "simulated" via Prompt if native missing
-            report.writerAPI = window.ai?.writer ? 'native' : 'simulated';
-            report.rewriterAPI = window.ai?.rewriter ? 'native' : 'simulated';
-        }
+        // Check Writer
+        try {
+            if (window.Writer) {
+                const wStatus = await window.Writer.availability();
+                report.writerAPI = wStatus === 'readily' ? 'available' : wStatus;
+            } else {
+                report.writerAPI = 'missing';
+            }
+        } catch (e) { report.writerAPI = 'error'; }
+
+        // Check Rewriter
+        try {
+            if (window.Rewriter) {
+                const rStatus = await window.Rewriter.availability();
+                report.rewriterAPI = rStatus === 'readily' ? 'available' : rStatus;
+            } else {
+                report.rewriterAPI = 'missing';
+            }
+        } catch (e) { report.rewriterAPI = 'error'; }
+
         return report;
     }
 
@@ -163,9 +210,19 @@ class AISwitchboard {
         const findings = [];
 
         // 1. Check Namespaces
-        ['ai', 'model', 'gemini', 'chromeAI', 'googleAI', 'Summarizer'].forEach(key => {
-            if (window[key]) findings.push(`window.${key} found`);
-        });
+        if (window.ai) {
+            findings.push(`window.ai found (Keys: ${Object.keys(window.ai).join(', ')})`);
+
+            // Explicit checks
+            if (window.ai.writer) findings.push(`window.ai.writer: ${typeof window.ai.writer}`);
+            else findings.push('window.ai.writer: UNDEFINED');
+
+            if (window.ai.rewriter) findings.push(`window.ai.rewriter: ${typeof window.ai.rewriter}`);
+            else findings.push('window.ai.rewriter: UNDEFINED');
+
+        } else {
+            findings.push('window.ai MISSING');
+        }
 
         // 2. Check Constructors
         if (window.LanguageModel) findings.push('window.LanguageModel found');

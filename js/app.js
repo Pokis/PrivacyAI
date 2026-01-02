@@ -25,6 +25,14 @@ async function init() {
         UI.setLanguage('en');
     }
 
+    // First Visit Check
+    const hasVisited = await storage.getSetting('hasVisited');
+    if (!hasVisited) {
+        // Show About after a short delay to let things settle
+        setTimeout(() => UI.showAboutModal(), 1000);
+        await storage.saveSetting('hasVisited', true);
+    }
+
     // Initial State: Loading
     UI.switchView('welcome');
     UI.setLandingState('loading');
@@ -98,8 +106,17 @@ async function loadProject(id) {
         }
 
         UI.apiSelector.value = currentProject.apiMode || 'prompt';
-        UI.switchView(currentProject.apiMode);
 
+        // Lock API Mode if chat has history (prevent confusion/mixed state)
+        if (currentProject.history && currentProject.history.length > 0) {
+            UI.apiSelector.disabled = true;
+            UI.apiSelector.title = "Mode is locked for this conversation.";
+        } else {
+            UI.apiSelector.disabled = false;
+            UI.apiSelector.title = "Select AI Model";
+        }
+
+        UI.switchView(currentProject.apiMode);
         aiSwitchboard.setStrategy(currentProject.apiMode);
 
         if (currentProject.apiMode !== 'rewriter' && currentProject.history) {
@@ -146,6 +163,9 @@ function setupEventListeners() {
             aiSwitchboard.setStrategy(e.target.value);
             UI.switchView(e.target.value);
             currentSession = null;
+
+            // Refund project list to update icon
+            UI.renderProjects(await storage.getAllProjects(), currentProject.id);
         });
     }
 
@@ -242,6 +262,14 @@ function setupEventListeners() {
     const rewriterBtn = document.getElementById('rewriter-submit-btn');
     if (rewriterBtn) rewriterBtn.addEventListener('click', executeCommand);
 
+    // Help Toggle
+    const helpBtn = document.getElementById('help-toggle');
+    if (helpBtn) helpBtn.addEventListener('click', () => UI.showHelpModal());
+
+    // About Toggle
+    const aboutBtn = document.getElementById('about-toggle');
+    if (aboutBtn) aboutBtn.addEventListener('click', () => UI.showAboutModal());
+
     const userInput = document.getElementById('user-input');
     if (userInput) {
         userInput.addEventListener('keydown', (e) => {
@@ -264,16 +292,6 @@ function setupEventListeners() {
         });
     }
 
-    // Help
-    const helpBtn = document.getElementById('help-toggle');
-    if (helpBtn) {
-        helpBtn.addEventListener('click', () => {
-            UI.switchView('welcome');
-            if (appReady) UI.setLandingState('ready');
-            else UI.setLandingState('setup');
-        });
-    }
-
     // Settings Global
     const settingsBtn = document.getElementById('settings-toggle');
     if (settingsBtn) {
@@ -282,14 +300,6 @@ function setupEventListeners() {
             UI.showSettingsModal(currentSys, async (newVal) => {
                 await storage.saveSetting('defaultSystemPrompt', newVal);
             });
-        });
-    }
-
-    // About
-    const aboutBtn = document.getElementById('about-toggle');
-    if (aboutBtn) {
-        aboutBtn.addEventListener('click', () => {
-            UI.showAboutModal();
         });
     }
 }
@@ -302,15 +312,27 @@ async function executeCommand() {
     if (mode === 'rewriter') {
         const input = UI.rewriterInput.value;
         if (!input) return;
-        UI.rewriterOutput.textContent = "Processing...";
+
+        // Get options from UI
+        const toneSelect = document.getElementById('editor-tone');
+        const lenSelect = document.getElementById('editor-length');
+        const tone = toneSelect ? toneSelect.value : 'more-formal';
+        const length = lenSelect ? lenSelect.value : 'as-is';
+
+        UI.rewriterOutput.innerHTML = '<div class="spinner"></div>';
         try {
-            if (!currentSession) {
-                currentSession = await aiSwitchboard.createSession({
-                    tone: 'more-formal',
-                    length: 'as-is',
-                    monitor: monitorDownload
-                });
+            // Always create fresh session for rewriter to apply new options
+            if (currentSession) {
+                try { currentSession.destroy(); } catch (e) { }
+                currentSession = null;
             }
+
+            currentSession = await aiSwitchboard.createSession({
+                tone: tone,
+                length: length,
+                monitor: monitorDownload
+            });
+
             const result = await currentSession.rewrite(input);
             UI.rewriterOutput.textContent = result;
         } catch (e) {
@@ -345,12 +367,13 @@ async function runGenerativeLoop(input) {
         }
 
         const stream = currentSession.promptStreaming(input);
+        UI.showThinking();
 
         let isFirst = true;
 
         for await (const chunk of stream) {
-            // Robust accumulation logic
             if (isFirst) {
+                UI.hideThinking();
                 fullResponse = chunk;
                 isFirst = false;
             } else {
@@ -366,6 +389,9 @@ async function runGenerativeLoop(input) {
         currentProject.history.push({ role: 'model', content: fullResponse });
         await storage.saveProject(currentProject);
 
+        // Lock Selector immediately if not already locked
+        if (UI.apiSelector) UI.apiSelector.disabled = true;
+
         // Auto-Rename Feature
         // Rename if this is the first exchange (History length 2: User+Model)
         if (currentProject.history.length === 2) {
@@ -378,11 +404,6 @@ async function runGenerativeLoop(input) {
                 let newName = input.substring(0, 30);
                 if (input.length > 30) newName += "...";
 
-                // Generate a better name using AI if possible? 
-                // The user prompted: "first prompt should be used to generate chat name using the same nano AI"
-                // To do this simply, we can just use the prompt text for now as "Prompt as Name" is the standard lightweight approach.
-                // Asking Nano to summarize the name might be too slow/heavy for a background task, but let's try a simple truncation first as requested by "first prompt should be used".
-
                 currentProject.name = newName;
                 await storage.saveProject(currentProject);
                 UI.renderProjects(await storage.getAllProjects(), currentProject.id);
@@ -390,6 +411,7 @@ async function runGenerativeLoop(input) {
         }
 
     } catch (e) {
+        UI.hideThinking();
         monitorError(e);
         responseContainer.textContent += `\n[Error]: ${e.message}`;
     }
@@ -409,6 +431,10 @@ function monitorError(e) {
     console.error(e);
     if (e.message && (e.message.includes('download') || e.message === 'Target model not ready')) {
         UI.showLoader(true);
+    }
+    // Auto-open Help on missing flags
+    if (e.message.includes('AI_FLAGS_MISSING') || e.message.includes('MISSING')) {
+        UI.showHelpModal();
     }
 }
 

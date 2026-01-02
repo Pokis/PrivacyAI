@@ -59,6 +59,14 @@ export const UI = {
 
         // Update FAQ if visible
         this.renderFAQ();
+
+        // Update Diagnostics if visible
+        const diagContainer = document.getElementById('diag-container');
+        if (diagContainer && window.aiSwitchboard) {
+            window.aiSwitchboard.getDiagnostics().then(report => {
+                this.renderDiagnostics(report);
+            });
+        }
     },
 
     updateModeDescription(mode) {
@@ -77,6 +85,17 @@ export const UI = {
             div.className = `project-item ${p.id === activeId ? 'active' : ''}`;
             div.dataset.id = p.id;
 
+            // Icon based on Mode
+            const iconMock = {
+                'prompt': '💬',
+                'writer': '📝',
+                'rewriter': '✂️'
+            };
+            const modeIcon = document.createElement('span');
+            modeIcon.textContent = iconMock[p.apiMode] || '💬';
+            modeIcon.style.marginRight = '8px';
+            modeIcon.style.opacity = '0.7';
+
             // Name
             const span = document.createElement('span');
             span.className = 'project-name';
@@ -90,6 +109,7 @@ export const UI = {
                 <button class="delete-chat-btn" title="Delete">🗑️</button>
             `;
 
+            div.appendChild(modeIcon);
             div.appendChild(span);
             div.appendChild(actions);
             elements.projectList.appendChild(div);
@@ -129,24 +149,8 @@ export const UI = {
         elements.outputStream.scrollTop = elements.outputStream.scrollHeight;
     },
 
-    setHardwareStatus(statusKey) { // Dictionary Key or internal status string
-        const dict = locales[currentLang];
-        // Map internal status strings to keys if needed, or use directly if key exists
-        let text = dict[statusKey] || statusKey;
-
-        // Fix: 'simulated' and 'available' are GOOD states.
-        const validStates = ['status_ready', 'status_after_download', 'available', 'readily', 'simulated'];
-        const isReady = validStates.includes(statusKey) || statusKey === 'readily (implied)';
-
-        if (isReady) {
-            elements.hardwareStatus.textContent = dict.status_ready || "Ready";
-            elements.hardwareStatus.style.background = 'rgba(76, 175, 80, 0.1)';
-            elements.hardwareStatus.style.color = 'var(--status-green)';
-        } else {
-            elements.hardwareStatus.textContent = dict.status_unsupported;
-            elements.hardwareStatus.style.background = 'rgba(244, 67, 54, 0.1)';
-            elements.hardwareStatus.style.color = 'var(--status-red)';
-        }
+    setHardwareStatus(statusKey) {
+        // Element removed, no-op
     },
 
     showLoader(show) {
@@ -257,13 +261,103 @@ export const UI = {
         }
     },
 
-    renderFAQ() {
+    showHelpModal() {
+        // Create or get modal
+        const overlay = document.getElementById('input-modal-overlay');
+        let modal = document.getElementById('help-modal');
+        const dict = locales[currentLang];
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'help-modal';
+            modal.className = 'modal-window large hidden'; // 'large' class for wider modal
+            modal.style.cssText = "max-width: 600px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; background: #1a1a1a; box-shadow: 0 0 50px rgba(0,0,0,0.8);";
+
+            modal.innerHTML = `
+                <div class="modal-header">
+                    <span id="help-title">${dict.help || 'Help'}</span>
+                    <button class="close-modal" aria-label="Close">×</button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; padding-right: 10px;">
+                    <!-- Setup Steps Section (Restored) -->
+                    <div style="margin-bottom: 25px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-top:0; color:var(--primary-color);">🛠️ ${dict.welcome_setup_title || 'Setup'}</h4>
+                        <ol style="padding-left: 20px; line-height: 1.6; margin-bottom:0;">
+                            <li>${dict.step_1}</li>
+                            <li>${dict.step_2}</li>
+                            <li>${dict.step_3}</li>
+                            <li>${dict.step_4}</li>
+                        </ol>
+                    </div>
+
+                    <!-- Diagnostics Section -->
+                    <h4 style="margin: 0 0 10px 0;">📊 System Status</h4>
+                    <div id="help-diag-container" class="diag-box" style="margin-bottom: 20px;"></div>
+                    
+                    <!-- FAQ Section -->
+                    <div class="faq-container-modal"></div>
+                </div>
+                <div class="modal-actions" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: auto;">
+                     <button class="primary-btn close-modal-btn">Close</button>
+                </div>
+            `;
+            overlay.appendChild(modal);
+
+            const close = () => {
+                modal.classList.add('hidden');
+                overlay.classList.add('hidden');
+            };
+
+            modal.querySelector('.close-modal').addEventListener('click', close);
+            modal.querySelector('.close-modal-btn').addEventListener('click', close);
+        }
+
+        // Render Content
+
+        // 1. Diagnostics (Reuse existing logic if possible, or fetch fresh)
+        if (window.aiSwitchboard) {
+            window.aiSwitchboard.getDiagnostics().then(report => {
+                // Temporarily hijack renderDiagnostics target or manually render here
+                // Let's manually render to avoid messing with main UI container
+                const diagBox = modal.querySelector('#help-diag-container');
+                const getLabel = (status) => {
+                    if (status === 'readily' || status === 'available') return `<span class="ok">✅ ${dict.status_readily || 'Available'}</span>`;
+                    if (status === 'missing') return `<span class="err">❌ ${dict.status_missing}</span>`;
+                    if (status === 'no') return `<span class="err">❌ ${dict.status_no}</span>`;
+                    return `<span class="warn">⚠️ ${status}</span>`;
+                };
+
+                diagBox.innerHTML = `
+                    <div class="diag-item"><span>${dict.diag_prompt}:</span> ${getLabel(report.promptAPI)}</div>
+                    <div class="diag-item"><span>${dict.diag_writer}:</span> ${getLabel(report.writerAPI)}</div>
+                    <div class="diag-item"><span>${dict.diag_rewriter}:</span> ${getLabel(report.rewriterAPI)}</div>
+                `;
+            });
+        }
+
+        // 2. FAQ
+        const faqBox = modal.querySelector('.faq-container-modal');
+        if (dict.faq_items) {
+            faqBox.innerHTML = `<h3>${dict.faq_title || 'FAQ'}</h3>` + dict.faq_items.map(item => `
+                <details style="margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <summary style="cursor: pointer; font-weight: bold;">${item.q}</summary>
+                    <p style="margin-top: 8px; opacity: 0.8;">${item.a}</p>
+                </details>
+            `).join('');
+        }
+
+        // Show
+        overlay.classList.remove('hidden');
+        document.querySelectorAll('.modal-window').forEach(m => m.classList.add('hidden'));
+        modal.classList.remove('hidden');
+    },
+
+    renderFAQ() { // Keep original for Landing Setup
         const container = document.querySelector('.faq-container');
         if (!container) return;
         const dict = locales[currentLang];
-        // If we have faq items in dict, render them. If not, fallback to hardcoded keys.
-        // For simplicity, we assume dict.faq is an array of objects {q, a}
         if (!dict.faq_items) return;
+
 
         const html = dict.faq_items.map(item => `
             <details>
@@ -273,6 +367,44 @@ export const UI = {
         `).join('');
 
         container.innerHTML = `<h3>${dict.faq_title || 'FAQ'}</h3>` + html;
+    },
+
+    showDownloadProgress(percent) {
+        let toast = document.getElementById('download-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'download-toast';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: var(--surface-card);
+                border: 1px solid var(--primary-color);
+                color: var(--text-main);
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                font-family: var(--font-sans);
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            document.body.appendChild(toast);
+        }
+
+        toast.innerHTML = `
+            <span class="spinner" style="width:16px; height:16px; border:2px solid var(--text-muted); border-top-color:var(--primary-color); border-radius:50%; animation:spin 1s linear infinite;"></span>
+            <span>Downloading Model: <strong>${percent}%</strong></span>
+        `;
+
+        // Auto-remove when done (optional, but good UX)
+        if (percent >= 100) {
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 2000); // Keep for 2s after completion
+        }
     },
 
     showAboutModal() {
@@ -397,6 +529,21 @@ export const UI = {
         };
 
         newCancel.addEventListener('click', () => this.closeInputModal());
+    },
+
+    showThinking() {
+        const indicator = document.querySelector('.typing-indicator');
+        if (indicator) {
+            indicator.classList.remove('hidden');
+            indicator.textContent = locales[currentLang]?.typing || "AI is thinking...";
+        }
+    },
+
+    hideThinking() {
+        const indicator = document.querySelector('.typing-indicator');
+        if (indicator) {
+            indicator.classList.add('hidden');
+        }
     },
 
     closeInputModal() {

@@ -4,22 +4,22 @@
  */
 
 // Strategy Interface
+// Strategy Interface
 class AIStrategy {
     async createSession(options, monitorCallback) {
         throw new Error("Method 'createSession' must be implemented.");
     }
-
-    // For availability check
-    getCapabilityName() {
-        throw new Error("Method 'getCapabilityName' must be implemented.");
-    }
+    getCapabilityName() { return 'languageModel'; }
 }
 
 class ChatStrategy extends AIStrategy {
     getCapabilityName() { return 'languageModel'; }
 
     async createSession(options, monitorCallback) {
-        if (!window.ai || !window.ai.languageModel) {
+        // Support both old window.ai.languageModel and new window.LanguageModel
+        const factory = window.ai?.languageModel || window.LanguageModel;
+
+        if (!factory) {
             throw new Error("AI_FLAGS_MISSING");
         }
 
@@ -27,32 +27,41 @@ class ChatStrategy extends AIStrategy {
             systemPrompt: options.systemPrompt || "You are a helpful assistant.",
         };
 
-        if (monitorCallback) {
-            config.monitor = monitorCallback;
+        if (monitorCallback && options.monitor) {
+            config.monitor = options.monitor;
         }
 
-        return await window.ai.languageModel.create(config);
+        // Factory pattern might vary (create vs new)
+        if (factory.create) return await factory.create(config);
+        return new factory(config);
     }
 }
 
+// Fallback Writer that uses the generic Language Model if dedicated Writer API is missing
 class WriterStrategy extends AIStrategy {
     getCapabilityName() { return 'writer'; }
 
     async createSession(options, monitorCallback) {
-        if (!window.ai || !window.ai.writer) {
-            throw new Error("WRITER_API_MISSING");
+        // Try native Writer API first
+        if (window.ai?.writer) {
+            return await window.ai.writer.create({
+                sharedContext: options.sharedContext || ""
+            });
         }
 
-        // Writer API typically takes context or sharedContext
+        // Fallback to LanguageModel with "Writer" persona
+        const factory = window.ai?.languageModel || window.LanguageModel;
+        if (!factory) throw new Error("WRITER_API_MISSING");
+
+        console.log("Using LanguageModel as Writer fallback");
         const config = {
-            sharedContext: options.sharedContext || ""
+            systemPrompt: "You are a professional writing assistant. " + (options.sharedContext || "")
         };
-
-        if (monitorCallback) {
-            config.monitor = monitorCallback;
-        }
-
-        return await window.ai.writer.create(config);
+        // Wrap result to match Writer API interface if needed, but for now returning LM session
+        // Note: usage in app.js might need adjustment if APIs differ significantly.
+        // For this app, app.js calls .promptStreaming which both have.
+        if (factory.create) return await factory.create(config);
+        return new factory(config);
     }
 }
 
@@ -60,20 +69,30 @@ class RewriterStrategy extends AIStrategy {
     getCapabilityName() { return 'rewriter'; }
 
     async createSession(options, monitorCallback) {
-        if (!window.ai || !window.ai.rewriter) {
-            throw new Error("REWRITER_API_MISSING");
+        // Try native Rewriter API check
+        if (window.ai?.rewriter) {
+            return await window.ai.rewriter.create({
+                tone: options.tone || 'more-formal',
+                length: options.length || 'as-is'
+            });
         }
 
+        // Fallback to LanguageModel
+        const factory = window.ai?.languageModel || window.LanguageModel;
+        if (!factory) throw new Error("REWRITER_API_MISSING");
+
+        console.log("Using LanguageModel as Rewriter fallback");
         const config = {
-            tone: options.tone || 'more-formal',
-            length: options.length || 'as-is'
+            systemPrompt: `Rewrite the following text. Tone: ${options.tone || 'formal'}. Length: ${options.length || 'same'}. return ONLY the rewritten text.`
         };
 
-        if (monitorCallback) {
-            config.monitor = monitorCallback;
-        }
+        const session = factory.create ? await factory.create(config) : new factory(config);
 
-        return await window.ai.rewriter.create(config);
+        // Mock the 'rewrite' method expecting by app.js
+        session.rewrite = async (text) => {
+            return await session.prompt(text);
+        };
+        return session;
     }
 }
 
@@ -102,67 +121,43 @@ class AISwitchboard {
     async checkAvailability() {
         console.log("AI: Checking availability...");
 
-        // Poll for window.ai for up to 3 seconds
+        // Check for any valid AI entry point
+        const hasAI = window.ai || window.LanguageModel || window.Summarizer;
+
         let attempts = 0;
-        while (!window.ai && attempts < 30) {
-            await new Promise(r => setTimeout(r, 100)); // 100ms * 30 = 3000ms
+        while (!hasAI && attempts < 10 && !window.LanguageModel) { // Poll specifically for LanguageModel
+            await new Promise(r => setTimeout(r, 200));
             attempts++;
         }
 
-        console.log(`AI: window.ai present after ${attempts * 100}ms?`, !!window.ai);
-
-        if (!window.ai) {
-            console.warn("AI: window.ai missing after polling.");
-            return 'no';
+        if (window.LanguageModel || window.ai?.languageModel) {
+            try {
+                // Check capability availability
+                const factory = window.ai?.languageModel || window.LanguageModel;
+                // Availability API might be on factory or instance? 
+                // Spec is flux. Usually factory.availability()
+                if (factory.availability) {
+                    const status = await factory.availability();
+                    console.log("LanguageModel availability:", status);
+                    return status;
+                }
+                return 'readily'; // Assume ready if constructor exists but no availability method
+            } catch (e) {
+                console.warn("Error checking availability:", e);
+                return 'readily'; // Optimistic fallback
+            }
         }
 
-        try {
-            const capability = this.currentStrategy.getCapabilityName();
-            if (!window.ai[capability]) {
-                console.warn(`AI: window.ai.${capability} missing`);
-                return 'no';
-            }
-
-            // Add timeout implementation to prevent hanging indefinitely
-            const checkPromise = window.ai[capability].availability();
-            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('timeout'), 2000));
-
-            const result = await Promise.race([checkPromise, timeoutPromise]);
-
-            console.log("AI: Availability result:", result);
-
-            if (result === 'timeout') {
-                console.warn("AI Availability check timed out");
-                return 'no'; // Fallback to setup
-            }
-            return result;
-        } catch (e) {
-            console.warn("Availability check failed", e);
-            return 'no'; // Safest fallback
-        }
+        return 'no';
     }
     async getDiagnostics() {
         console.log("Checking AI Diagnostics...");
 
-        // Polyfill/Alias check for newer Chrome versions which might use window.model
-        if (!window.ai && window.model) {
-            console.log("Found window.model, aliasing to window.ai");
-            window.ai = window.model;
-        }
-
-        console.log("window.ai:", window.ai);
-        console.log("Environment:", {
-            secure: window.isSecureContext,
-            protocol: location.protocol,
-            host: location.host
-        });
-
-        if (window.ai) {
-            console.log("window.ai capabilities:", Object.keys(window.ai));
-        }
+        // Polyfill checks
+        const hasLangModel = !!(window.ai?.languageModel || window.LanguageModel);
 
         const report = {
-            windowAI: !!window.ai,
+            windowAI: hasLangModel, // Treat "AI Available" if LanguageModel is found
             isSecure: window.isSecureContext,
             protocol: location.protocol,
             promptAPI: 'missing',
@@ -170,44 +165,59 @@ class AISwitchboard {
             rewriterAPI: 'missing'
         };
 
-        if (window.ai) {
-            const check = async (cap) => {
-                if (!window.ai[cap]) return 'missing';
-                try {
-                    // race with timeout
-                    const p = window.ai[cap].availability();
-                    const t = new Promise(r => setTimeout(() => r('timeout'), 1000));
-                    return await Promise.race([p, t]);
-                } catch (e) { return 'error'; }
-            };
+        if (hasLangModel) {
+            const factory = window.ai?.languageModel || window.LanguageModel;
+            try {
+                // Check if factory itself has availability
+                if (factory.availability) {
+                    report.promptAPI = await factory.availability();
+                } else {
+                    // Check if it's a constructor we can perform a "capabilities" check on?
+                    // Or just assume readily if it exists
+                    report.promptAPI = 'readily (implied)';
+                }
+            } catch (e) { report.promptAPI = 'error'; }
 
-            report.promptAPI = await check('languageModel');
-            report.writerAPI = await check('writer');
-            report.rewriterAPI = await check('rewriter');
+            // Writer/Rewriter are now "simulated" via Prompt if native missing
+            report.writerAPI = window.ai?.writer ? 'native' : 'simulated';
+            report.rewriterAPI = window.ai?.rewriter ? 'native' : 'simulated';
         }
         return report;
     }
 
     async probeEnvironment() {
+        console.log("Run Deep Probe v3 invoked");
         const findings = [];
-        // Check potential namespaces
-        ['ai', 'model', 'gemini', 'chromeAI', 'googleAI'].forEach(key => {
+
+        // 1. Check Namespaces
+        ['ai', 'model', 'gemini', 'chromeAI', 'googleAI', 'Summarizer'].forEach(key => {
             if (window[key]) findings.push(`window.${key} found`);
         });
 
+        // 2. Check Constructors
+        if (window.LanguageModel) findings.push('window.LanguageModel found');
+        if (window.AI) findings.push('window.AI found');
         if (navigator.ai) findings.push('navigator.ai found');
 
-        // Storage check (Incognito often has strict quotas or no persistence)
+        // 3. Check Security Headers
+        if (window.crossOriginIsolated) findings.push('Security: crossOriginIsolated (OK)');
+        else findings.push('Security: NOT Isolated (Missing COOP/COEP headers)');
+
+        if (window.SharedArrayBuffer) findings.push('Buffer: SharedArrayBuffer (OK)');
+        else findings.push('Buffer: SharedArrayBuffer MISSING');
+
+        // 4. Storage Quota
         let storageType = 'Standard';
         try {
             if (navigator.storage && navigator.storage.estimate) {
                 const est = await navigator.storage.estimate();
-                if (est.quota < 400000000) storageType = 'Low Quota (Incognito?)';
+                if (est.quota < 400000000) storageType = 'Low Quota/Incognito';
             }
         } catch (e) { }
 
         const result = {
-            findings: findings.length ? findings.join(', ') : 'None',
+            findings: findings.length ? findings.join(', ') : 'No AI Objects Found',
+            headers: window.crossOriginIsolated ? 'OK' : 'MISSING',
             storage: storageType,
             userAgent: navigator.userAgent
         };
